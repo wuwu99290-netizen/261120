@@ -347,6 +347,26 @@
     </div>
   </div>
 
+  <!-- ==================== MODULE SELECTOR MODAL (專屬模組 X/Y + 自由選擇第1~3階) ==================== -->
+  <div id="module-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+    <div class="w-full max-w-2xl bg-slate-900 border-2 border-rose-400/70 ak-chamfer shadow-2xl overflow-hidden flex flex-col max-h-[86vh]">
+      <header class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-mono-tech tracking-widest text-rose-400">RHODES ISLAND // OPERATOR MODULE</div>
+          <h3 id="mod-modal-title" class="text-lg font-black text-white">幹員專屬模組配置（可選 X/Y 型號與第 1~3 階）</h3>
+        </div>
+        <button id="module-close" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold text-white ak-chamfer-sm">關閉 ✕</button>
+      </header>
+      <div class="p-4 overflow-y-auto space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-950/80 border border-slate-800 p-3 ak-chamfer-sm text-xs">
+          <span id="mod-current-status" class="font-bold text-amber-300">當前裝備：未裝備模組</span>
+          <button id="btn-mod-unequip" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 font-bold ak-chamfer-sm">卸下模組</button>
+        </div>
+        <div id="mod-cards-container" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== MAIL MODAL (羅德島郵箱) ==================== -->
   <div id="mail-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
     <div class="w-full max-w-2xl bg-slate-900 border-2 border-sky-400/70 ak-chamfer shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
@@ -635,6 +655,9 @@
         </div>
         <div class="space-y-2">
           <div id="brief-lock-notice" class="hidden text-xs text-red-400 bg-red-950/50 border border-red-500/40 px-3 py-2 text-center"></div>
+          <button id="btn-toggle-challenge" class="hidden w-full py-2 bg-red-950/80 hover:bg-red-900 border border-red-500/70 text-red-200 font-black text-xs tracking-wider ak-chamfer-sm transition">
+            ☠ 切換為【突襲模式】（敵軍+25% · 首通再領 ◆源石×1）
+          </button>
           <button id="btn-to-squad-prep" class="w-full py-3.5 bg-sky-500 hover:bg-sky-400 disabled:bg-slate-800 disabled:text-slate-500 text-slate-950 font-black text-base tracking-widest ak-chamfer transition shadow-lg">
             選擇出戰幹員 →
           </button>
@@ -743,12 +766,14 @@
 
           <div id="arch-stats" class="grid grid-cols-4 gap-1.5 text-center bg-slate-900/90 border border-slate-800 p-2 text-xs"></div>
 
-          <div class="bg-slate-900/90 border border-slate-800 p-2.5 space-y-1">
-            <div class="flex items-center justify-between">
-              <span id="arch-skill-name" class="text-sm font-bold text-amber-300"></span>
+          <div class="bg-slate-900/90 border border-slate-800 p-2.5 space-y-1.5">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1" id="arch-skill-tabs"></div>
               <span id="arch-skill-rank" class="text-[11px] font-mono-tech text-sky-300"></span>
             </div>
+            <div id="arch-skill-name" class="text-sm font-bold text-amber-300"></div>
             <p id="arch-skill-desc" class="text-[11px] text-slate-300 leading-relaxed"></p>
+            <div class="pt-1.5 border-t border-slate-800/90 text-[10px] text-sky-200"><span class="px-1 py-0.5 bg-sky-500/20 text-sky-300 font-bold mr-1">天賦</span><strong id="arch-talent-name"></strong>：<span id="arch-talent-desc" class="text-slate-300"></span></div>
           </div>
 
           <div id="arch-trust-bar-wrap" class="bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 space-y-1">
@@ -1702,7 +1727,7 @@
 
   // Authentic Arknights signature skill overrides (accurate mechanics & descriptions!)
   const SKILL_OVERRIDES = {
-    wisadel:   { desc:'「爆裂黎明」：大幅提升攻擊力並召喚祖宗砲擊，大範圍高爆濺射＋對空打擊＋附帶眩暈！', trueDmg:false, stunOnHit:0.6 },
+    wisadel:   { desc:'「爆裂黎明」：立即在攻擊範圍內召喚 2 個「魂靈之影」（觸發迷彩＋法術協同射擊），攻擊可對空並發動超大範圍高爆濺射＋餘震！', trueDmg:false, stunOnHit:0.6 },
     logos:     { desc:'「歿世語」：攻擊範圍擴大，同時對最多 4 名敵人降下高額法術咒言並附加減速！', trueDmg:false },
     pepe:      { desc:'「時光之錘」：攻擊力劇增，每次重錘造成大範圍濺射物理傷害並短暫眩暈目標！', stunOnHit:0.8 },
     shu:       { desc:'「化被草木」：展開播種領域，大幅治療周圍友軍並對範圍內敵人施加強力減速！', healAura:true },
@@ -1732,6 +1757,77 @@
       if (ov.dpGain) op.skill.dpGain = ov.dpGain;
     }
   });
+
+
+  // ==================== AUTHENTIC ARKNIGHTS 3-SKILL (S1/S2/S3) & PASSIVE TALENTS ====================
+  const SIGNATURE_SKILLS_3 = {
+    silverash: [
+      { name:'強力擊·γ', desc:'下一次攻擊造成 220% 物理爆發傷害（低消耗短迴轉）。', spCost:8, initSp:4, duration:4, type:'SAW' },
+      { name:'雪境生存法則', desc:'縮短射程，防禦力大幅提升並每秒回復最大生命，化身為不倒前線重裝。', spCost:12, initSp:6, duration:18, type:'SAW' },
+      null // uses default S3 真銀斬
+    ],
+    wisadel: [
+      { name:'定點清算', desc:'強力定點砲擊，對目標周圍造成高額物理濺射並附帶餘震。', spCost:10, initSp:5, duration:6, type:'OVERCHARGE' },
+      { name:'飽和覆擊', desc:'攻擊速度大幅提升，連續傾瀉高爆彈幕覆蓋前方區域。', spCost:22, initSp:10, duration:16, type:'OVERCHARGE' },
+      null // S3 爆裂黎明
+    ],
+    surtr: [
+      { name:'烈焰魔劍', desc:'下次攻擊力大幅提升，擊殺目標時立刻回復全部技力。', spCost:7, initSp:4, duration:5, type:'SAW' },
+      { name:'熔核巨影', desc:'射程+1，同時攻擊 2 名敵人並造成高額法術傷害。', spCost:16, initSp:8, duration:15, type:'TRUESILVER' },
+      null // S3 黃昏
+    ],
+    eyja: [
+      { name:'二重詠唱', desc:'大幅提升攻擊速度與攻擊力，持續進行高頻法術單體點殺。', spCost:18, initSp:8, duration:16, type:'OVERCHARGE' },
+      { name:'點燃', desc:'向目標發射爆炎火球，對周圍敵人造成群體法術爆發（短冷卻）。', spCost:8, initSp:4, duration:4, type:'VOLCANO' },
+      null // S3 火山
+    ],
+    mlynar: [
+      { name:'未聲張的怒火', desc:'提升攻防並快速斬擊前方敵人。', spCost:14, initSp:6, duration:12, type:'SAW' },
+      { name:'未平息的悲慟', desc:'射程擴大並打出雙段耀金斬擊，清雜極快。', spCost:20, initSp:10, duration:14, type:'TRUESILVER' },
+      null // S3 未照耀的榮光
+    ],
+    exusiai: [
+      { name:'衝鋒模式', desc:'快速三連射，穩定壓制輕甲與空中無人機。', spCost:8, initSp:4, duration:5, type:'OVERCHARGE' },
+      { name:'掃射模式', desc:'主動開啟四連射模式，穩定輸出可控軸。', spCost:18, initSp:10, duration:14, type:'OVERCHARGE' },
+      null // S3 過載模式
+    ],
+    shu: [
+      { name:'化被草木·療', desc:'快速治療周圍受傷最重的友軍並附帶持續回復。', spCost:10, initSp:5, duration:6, type:'CREED_FIELD' },
+      { name:'嘉禾盈倉', desc:'大幅提升阻擋防禦力並對周圍全體友軍持續治療。', spCost:20, initSp:10, duration:15, type:'CREED_FIELD' },
+      null // S3 化被草木
+    ]
+  };
+
+  const OP_TALENTS = {
+    silverash: { name:'鷹眼視覺', desc:'全體幹員再部署時間 -10%，並揭露攻擊範圍內敵軍的隱匿狀態。' },
+    ptilopsis: { name:'技力光環', desc:'在場時，全場所有友方幹員的技力自然回復速度 +30%！' },
+    texas:     { name:'戰術快遞', desc:'編入出戰隊伍時，開場初始部署費用額外 +2！' },
+    bagpipe:   { name:'軍事傳統', desc:'編入出戰隊伍時，全體先鋒幹員初始技力額外 +6！' },
+    surtr:     { name:'熔火',     desc:'攻擊時無視目標 20 點法術抗性，造成極致法術熔毀！' },
+    wisadel:   { name:'魂靈庇護', desc:'場上存在「魂靈之影」時獲得迷彩，不會成為敵方遠程攻擊目標。' },
+    myrtle:    { name:'如沐春風', desc:'在場時每秒為全場所有先鋒幹員回復生命值。' },
+    eyja:      { name:'亂火',     desc:'編入隊伍時，全體術師幹員攻擊力 +12%！' },
+    saria:     { name:'萊茵充能護服', desc:'隨在場時間持續強化自身攻防，穩守高壓防線。' },
+    kaltsit:   { name:'Mon3tr',   desc:'部署時召喚高血高攻真傷巨獸 Mon3tr 協同作戰。' },
+    ling:      { name:'清平龍影', desc:'部署時召喚法傷龍影協助阻擋與清場。' }
+  };
+
+  OPERATORS.forEach(op => {
+    const s3 = { ...op.skill };
+    const sig = SIGNATURE_SKILLS_3[op.id];
+    const s1 = (sig && sig[0]) || { name:`戰術強化·α`, desc:`短冷卻高迴轉，開啟期間攻擊力與防禦力穩步提升。`, spCost:Math.max(8, Math.round(s3.spCost*0.55)), initSp:4, duration:10, type: op.dmgType==='HEAL'?'CREED_FIELD':op.role==='先鋒'?'INSTANT_HAMMER':'SAW' };
+    const s2 = (sig && sig[1]) || { name:`精銳戰術·β`, desc:`中段爆發技能，提升攻速或治療效率以應對中盤波次。`, spCost:Math.max(12, Math.round(s3.spCost*0.78)), initSp:6, duration:13, type: op.dmgType==='HEAL'?'CREED_FIELD':op.placement==='RANGED'?'OVERCHARGE':'TRUESILVER' };
+    op.skills = op.rarity >= 6 ? [s1, s2, s3] : op.rarity >= 4 ? [s1, s3] : [s3];
+    op.talent = OP_TALENTS[op.id] || { name:`${op.branch || op.role}專精天賦`, desc:`發揮${op.branch || op.role}分支實戰優勢，隨精英化與潛能進一步強化。` };
+  });
+
+  function getActiveSkill(opDef) {
+    const d = getOwnedData(opDef.id);
+    const maxUnlockedIdx = opDef.skills.length === 1 ? 0 : opDef.skills.length === 2 ? (d.elite >= 1 ? 1 : 0) : (d.elite >= 2 ? 2 : d.elite >= 1 ? 1 : 0);
+    const chosen = typeof d.equippedSkillIdx === 'number' ? Math.min(d.equippedSkillIdx, opDef.skills.length - 1) : (opDef.skills.length - 1);
+    // Allow players to preview & use their signature skill immediately or switch between S1/S2/S3!
+    return opDef.skills[chosen] || opDef.skill;
+  }
 
   const OP_MAP = Object.fromEntries(OPERATORS.map(o => [o.id, o]));
 
@@ -1997,6 +2093,8 @@
       updatedAt: Date.now(),
       cleared: {},
       firstOpClaimed: {},
+      challengeCleared: {},
+      challengeOpClaimed: {},
       firstOrundumClaimed: {},
       abyssBestFloor: 0,
       assistantId: 'fang',
@@ -2117,24 +2215,35 @@
   };
   function getOpComputedStats(opDef) {
     const d = getOwnedData(opDef.id);
-    const trustPct = Math.min(100, d.trust || 0) / 100; // 100% trust grants full bonus
-    const scale = 1 + (d.level - 1) * 0.012 + d.elite * 0.24 + (d.pot >= 4 ? 0.05 : 0) + (d.pot >= 5 ? 0.04 : 0) + (d.moduleLv || 0) * 0.055;
-    const costRed = (d.pot >= 6 ? 2 : d.pot >= 2 ? 1 : 0) + (d.moduleLv >= 3 ? 1 : 0);
-    const redeployRed = d.pot >= 3 ? 4 : 0;
+    const trustPct = Math.min(100, d.trust || 0) / 100;
+    const modType = d.moduleType || (d.moduleLv > 0 ? 'X' : 'NONE');
+    const modStg  = modType === 'NONE' ? 0 : (typeof d.moduleEquipStage === 'number' ? d.moduleEquipStage : (d.moduleLv || 0));
+    const modAtkBonus = modType === 'X' ? [0, 0.06, 0.12, 0.18][modStg] : 0;
+    const modHpBonus  = modType === 'Y' ? [0, 0.08, 0.14, 0.20][modStg] : 0;
+    const modDefBonus = modType === 'Y' ? [0, 0.08, 0.12, 0.16][modStg] : 0;
+    const modResBonus = modType === 'Y' ? [0, 0, 8, 12][modStg] : 0;
+    const modSkillBonus = modType === 'X' ? [0, 0, 0.08, 0.15][modStg] : 0;
+    const modCostRed = modType === 'Y' ? [0, 1, 1, 2][modStg] : 0;
+    const modSpRed = modType === 'Y' && modStg >= 3 ? 2 : 0;
+    const modRdRed = modType === 'Y' && modStg >= 2 ? 6 : 0;
+
+    const baseScale = 1 + (d.level - 1) * 0.012 + d.elite * 0.24 + (d.pot >= 4 ? 0.05 : 0) + (d.pot >= 5 ? 0.04 : 0);
+    const costRed = (d.pot >= 6 ? 2 : d.pot >= 2 ? 1 : 0) + modCostRed;
+    const redeployRed = (d.pot >= 3 ? 4 : 0) + modRdRed;
     const trustHp  = Math.round(220 * trustPct);
     const trustAtk = Math.round(65 * trustPct);
     const trustDef = Math.round(35 * trustPct);
-    const totalSkillRank = (d.skillLv || 1) + (d.mastery || 0); // 1..10 (Lv.7 + M3)
+    const totalSkillRank = (d.skillLv || 1) + (d.mastery || 0);
     return {
-      maxHp: Math.round(opDef.maxHp * scale) + trustHp,
-      atk:   Math.round(opDef.atk * scale) + trustAtk,
-      def:   Math.round(opDef.def * scale) + trustDef,
-      res:   (opDef.res || 0) + (d.moduleLv >= 2 ? 5 : 0),
+      maxHp: Math.round(opDef.maxHp * (baseScale + modHpBonus)) + trustHp,
+      atk:   Math.round(opDef.atk * (baseScale + modAtkBonus)) + trustAtk,
+      def:   Math.round(opDef.def * (baseScale + modDefBonus)) + trustDef,
+      res:   (opDef.res || 0) + modResBonus,
       cost:  Math.max(4, opDef.cost - costRed),
       redeploy: Math.max(10, (opDef.redeploy || 70) - redeployRed),
-      skillMult: 1 + (d.skillLv - 1) * 0.07 + (d.mastery || 0) * 0.14,
-      spCost: Math.max(6, opDef.skill.spCost - Math.floor((d.skillLv - 1) / 2) - (d.mastery || 0) * 2),
-      totalSkillRank,
+      skillMult: 1 + (d.skillLv - 1) * 0.07 + (d.mastery || 0) * 0.14 + modSkillBonus,
+      spCost: Math.max(6, opDef.skill.spCost - Math.floor((d.skillLv - 1) / 2) - (d.mastery || 0) * 2 - modSpRed),
+      modType, modStg, totalSkillRank,
       ...d
     };
   }
@@ -3041,6 +3150,21 @@
       autoBtn.classList.toggle('hidden', !canAuto);
       autoBtn.textContent = `⚡ PRTS 代理指揮 · 立即掃蕩 (-${st.sanityCost} 理智)`;
     }
+    const chBtn = document.getElementById('btn-toggle-challenge');
+    if (chBtn) {
+      const canCh = unlocked && st.category === 'main' && (save.cleared[st.id] || 0) >= 3;
+      if (!canCh) state.challengeMode = false;
+      chBtn.classList.toggle('hidden', !canCh);
+      const chDone = Boolean(save.challengeCleared?.[st.id]);
+      chBtn.textContent = state.challengeMode
+        ? `☠ 當前：突襲模式已開啟（敵軍全屬性 +25%）· 點此切回普通`
+        : `☠ 開啟【突襲模式】${chDone ? '（已通關）' : '（首通再領 ◆源石×1！）'}`;
+      chBtn.className = state.challengeMode
+        ? 'w-full py-2 bg-red-600 hover:bg-red-500 text-white font-black text-xs tracking-wider ak-chamfer-sm transition shadow-lg'
+        : 'w-full py-2 bg-red-950/80 hover:bg-red-900 border border-red-500/70 text-red-200 font-black text-xs tracking-wider ak-chamfer-sm transition';
+    }
+    if (false) {
+    }
   }
 
   // ==================== 5. SQUAD & 6. OPERATORS ====================
@@ -3105,9 +3229,31 @@
     const mText = cs.mastery > 0 ? ` · 專精${['','一','二','三'][cs.mastery]}` : '';
     const modText = cs.moduleLv > 0 ? ` · 模組Lv.${cs.moduleLv}` : '';
     document.getElementById('arch-en').textContent = `Lv.${cs.level}/${maxLv} · 潛能 ${cs.pot}/6${modText} · 碎片 ${cs.frags}`;
-    document.getElementById('arch-skill-name').textContent = op.skill.name;
-    document.getElementById('arch-skill-rank').textContent = `${cs.mastery > 0 ? `專精${['','一','二','三'][cs.mastery]} (M${cs.mastery})` : `Lv.${cs.skillLv}/7`} · SP ${cs.spCost}`;
-    document.getElementById('arch-skill-desc').textContent = op.skill.desc;
+    const activeSk = getActiveSkill(op);
+    const skTabs = document.getElementById('arch-skill-tabs');
+    if (skTabs) {
+      skTabs.innerHTML = '';
+      const curIdx = op.skills.indexOf(activeSk);
+      op.skills.forEach((skObj, sIdx) => {
+        const b = document.createElement('button');
+        b.className = `px-2 py-0.5 text-[10px] font-black ak-chamfer-sm ${sIdx === curIdx ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:text-white'}`;
+        b.textContent = `技能 ${sIdx + 1}`;
+        b.addEventListener('click', () => {
+          if (!isOwned(op.id)) return;
+          sfx.play('click'); save.owned[op.id].equippedSkillIdx = sIdx;
+          persistSave(); renderOperatorArchive();
+          showGlobalToast(`已切換 ${op.name} 攜帶技能：${skObj.name}`);
+        });
+        skTabs.appendChild(b);
+      });
+    }
+    const effSpCost = Math.max(5, activeSk.spCost - Math.floor((cs.skillLv - 1) / 2) - (cs.mastery || 0) * 2);
+    document.getElementById('arch-skill-name').textContent = activeSk.name;
+    document.getElementById('arch-skill-rank').textContent = `${cs.mastery > 0 ? `專精${['','一','二','三'][cs.mastery]} (M${cs.mastery})` : `Lv.${cs.skillLv}/7`} · SP ${effSpCost}`;
+    document.getElementById('arch-skill-desc').textContent = activeSk.desc;
+    const tn = document.getElementById('arch-talent-name'), tdEl = document.getElementById('arch-talent-desc');
+    if (tn && op.talent) tn.textContent = op.talent.name;
+    if (tdEl && op.talent) tdEl.textContent = op.talent.desc;
     document.getElementById('arch-stats').innerHTML = `<div><div class="text-[10px] text-slate-400">生命</div><div class="font-mono-tech font-bold text-white">${cs.maxHp}</div></div><div><div class="text-[10px] text-slate-400">攻擊</div><div class="font-mono-tech font-bold text-amber-300">${cs.atk}</div></div><div><div class="text-[10px] text-slate-400">防禦/法抗</div><div class="font-mono-tech font-bold text-sky-300">${cs.def}/${cs.res}</div></div><div><div class="text-[10px] text-slate-400">費用/阻擋</div><div class="font-mono-tech font-bold text-emerald-300">${cs.cost} / ${op.placement==="RANGED"?"高台":"阻"+op.block}</div></div>`;
     const trWrap = document.getElementById('arch-trust-bar-wrap'); if (trWrap) trWrap.classList.toggle('hidden', !owned);
     const trVal = document.getElementById('arch-trust-val'), trFill = document.getElementById('arch-trust-fill');
@@ -3149,23 +3295,18 @@
         document.getElementById('cost-up-skill').textContent = '已達最高專精';
       }
 
-      // Module Lv.0 -> 3 (Requires Elite 2 & Lv.40+ for 4*/5*/6*!)
+      // Module Config & Stage 1/2/3 Selector (Requires Elite 2 & Lv.40+ for 4*/5*/6*!)
       const bMod = document.getElementById('btn-up-module');
       const lMod = document.getElementById('label-up-module');
-      const curMod = cs.moduleLv || 0;
       if (bMod) {
         if (op.rarity < 4) {
           bMod.disabled = true; if (lMod) lMod.textContent = '專屬模組 (4★+解鎖)';
           document.getElementById('cost-up-module').textContent = '3★幹員無模組';
-        } else if (curMod >= 3) {
-          bMod.disabled = true; if (lMod) lMod.textContent = '專屬模組 MOD Lv.3';
-          document.getElementById('cost-up-module').textContent = '已滿級 (全屬性+16.5% / 費-1)';
         } else {
-          const modCost = 18000 + curMod * 14000;
           const reqMet = cs.elite >= 2 && cs.level >= 40;
           bMod.disabled = !reqMet;
-          if (lMod) lMod.textContent = curMod === 0 ? '開啟專屬模組 (Lv.1)' : `升級專屬模組 (Lv.${curMod}→${curMod+1})`;
-          document.getElementById('cost-up-module').textContent = !reqMet ? '需精二 Lv.40 解鎖' : `${modCost.toLocaleString()}龍門幣`;
+          if (lMod) lMod.textContent = cs.modType === 'NONE' ? '專屬模組（點此選擇 X/Y 與階數）' : `模組 ${cs.modType} · Stage ${cs.modStg}`;
+          document.getElementById('cost-up-module').textContent = !reqMet ? '需精二 Lv.40 解鎖' : '點此升階 / 自由切換第 1~3 階';
         }
       }
 
@@ -3365,10 +3506,11 @@
     if (!isStageUnlocked(stageObj)) return;
     if (save.sanity < stageObj.sanityCost) { showGlobalToast(`理智不足（需 ${stageObj.sanityCost}，可在大廳用 1 源石補滿！）`); return; }
     save.sanity -= stageObj.sanityCost; persistSave();
-    state.stage = stageObj; state.dp = stageObj.initDp; state.dpFrac = 0; state.life = stageObj.maxLife;
+    state.stage = stageObj; state.dp = stageObj.initDp + (save.squad.includes('texas') ? 2 : 0); state.dpFrac = 0; state.life = stageObj.maxLife;
+    ArkSpine.preloadSquad(save.activeSupport ? [...save.squad, save.activeSupport.opId] : save.squad);
     state.kills = 0; state.totalEnemies = stageObj.waves.length; state.time = 0; state.paused = false;
     state.selectedCardId = null; state.placingTile = null; state.inspectedOp = null;
-    state.operators = []; state.cooldowns = {}; state.enemies = []; state.effects = []; state.floatingTexts = [];
+    state.operators = []; state.summons = []; state.cooldowns = {}; state.enemies = []; state.effects = []; state.floatingTexts = [];
     state.spawnQueue = stageObj.waves.map(w => ({ ...w, spawned: false }));
     resultModal.classList.add('hidden'); resultModal.classList.remove('flex');
     inspectPanel.classList.add('hidden'); dirHint.classList.add('hidden'); bossBanner.classList.add('hidden');
@@ -3443,7 +3585,7 @@
     const op = state.inspectedOp; if (!op) return;
     if (!state.operators.includes(op)) { state.inspectedOp = null; inspectPanel.classList.add('hidden'); return; }
     applyImgWithFallback(document.getElementById('insp-img'), op.def, false);
-    document.getElementById('insp-class').textContent = op.def.role;
+    document.getElementById('insp-class').textContent = `${op.def.role} · ${op.def.branch || op.def.tag}`;
     document.getElementById('insp-name').textContent = op.def.name;
     document.getElementById('insp-stats').textContent = `HP ${Math.ceil(op.hp)}/${op.stats.maxHp} · ATK ${Math.round(getEffectiveAtk(op))} · 朝向:${DIRS_LABEL[op.dir]}`;
     document.getElementById('insp-skill-name').textContent = `${op.def.skill.name} (Lv.${op.stats.skillLv})`;
@@ -3463,11 +3605,64 @@
     document.getElementById('insp-retreat-btn').textContent = `撤退 (+${Math.floor(op.stats.cost * 0.5)}費)`;
   }
 
+
+  function spawnSummonsForOperator(op, count) {
+    const stage = state.stage; if (!stage) return;
+    const rangeTiles = getAttackTiles(op.def, op.col, op.row, op.dir, false);
+    const existing = state.summons.filter(s => s.ownerUid === op.uid);
+    const maxCap = op.id === 'wisadel' ? 3 : op.id === 'ling' ? 2 : 1;
+    let spawned = 0;
+    // Candidate tiles inside attack range (or adjacent) not already occupied by another summon
+    const cands = rangeTiles.filter(([tc, tr]) => tc >= 0 && tr >= 0 && tc < stage.cols && tr < stage.rows && stage.grid[tr][tc] !== '.' && stage.grid[tr][tc] !== 'S' && stage.grid[tr][tc] !== 'E' && !state.summons.some(s => s.col === tc && s.row === tr));
+    for (const [tc, tr] of cands) {
+      if (spawned >= count || existing.length + spawned >= maxCap) break;
+      if (op.id === 'wisadel') {
+        state.summons.push({
+          uid: state.nextUid++, ownerUid: op.uid, type: 'REVENANT', name: '魂靈之影',
+          col: tc, row: tr, hp: 5000, maxHp: 5000, atk: Math.round(op.stats.atk * 0.65),
+          dmgType: 'ARTS', atkInterval: 2.0, atkTimer: 0.4, range: 2.6, antiAir: true,
+          color: '#ef4444', glow: '#f97316', hitFlash: 0
+        });
+      } else if (op.id === 'kaltsit') {
+        if (stage.grid[tr][tc] !== 'G') continue;
+        state.summons.push({
+          uid: state.nextUid++, ownerUid: op.uid, type: 'MON3TR', name: 'Mon3tr',
+          col: tc, row: tr, hp: 5433, maxHp: 5433, atk: Math.round(op.stats.atk * 2.4),
+          dmgType: 'TRUE', atkInterval: 1.8, atkTimer: 0.3, range: 1.3, antiAir: false,
+          color: '#22c55e', glow: '#86efac', hitFlash: 0
+        });
+      } else if (op.id === 'ling') {
+        if (stage.grid[tr][tc] !== 'G') continue;
+        state.summons.push({
+          uid: state.nextUid++, ownerUid: op.uid, type: 'DRAGON', name: '清平龍影',
+          col: tc, row: tr, hp: 4200, maxHp: 4200, atk: Math.round(op.stats.atk * 1.45),
+          dmgType: 'ARTS', atkInterval: 1.5, atkTimer: 0.3, range: 1.4, antiAir: false,
+          color: '#38bdf8', glow: '#7dd3fc', hitFlash: 0
+        });
+      }
+      const sc = gridToCenter(tc, tr);
+      state.effects.push({ type:'RING', x:sc.x, y:sc.y, maxR:layout.tileSize*1.1, color:op.def.color, life:0.45, maxLife:0.45 });
+      spawned++;
+    }
+    if (spawned > 0) {
+      const oc = gridToCenter(op.col, op.row);
+      const sName = op.id === 'wisadel' ? `召喚 魂靈之影 ×${spawned}（迷彩啟動）` : op.id === 'kaltsit' ? '召喚 Mon3tr!' : `召喚 清平龍影 ×${spawned}!`;
+      state.floatingTexts.push({ x:oc.x, y:oc.y-40, text:sName, color:'#fbbf24', size:12, life:1.0, maxLife:1.0 });
+    }
+  }
+
   function deployOperator(opDef, col, row, dir) {
     const cs = getOpComputedStats(opDef);
     if (!canPlaceOnTile(opDef, col, row) || state.dp < cs.cost) return;
     state.dp -= cs.cost;
-    state.operators.push({ uid:state.nextUid++, id:opDef.id, def:opDef, stats:cs, col, row, dir, hp:cs.maxHp, sp:Math.min(cs.spCost, opDef.skill.initSp), skillActive:0, atkTimer:0.15, blockedEnemies:[], hitFlash:0, atkAnim:0 });
+    const actSk = getActiveSkill(opDef);
+    const runtimeDef = { ...opDef, skill: actSk };
+    const hasBagpipe = save.squad.includes('bagpipe');
+    const bonusInitSp = (opDef.role === '先鋒' && hasBagpipe) ? 6 : 0;
+    const effSp = Math.max(5, actSk.spCost - Math.floor((cs.skillLv - 1) / 2) - (cs.mastery || 0) * 2);
+    const newOp = { uid:state.nextUid++, id:opDef.id, def:runtimeDef, stats:{ ...cs, spCost: effSp }, col, row, dir, hp:cs.maxHp, sp:Math.min(effSp, (actSk.initSp || 0) + bonusInitSp), skillActive:0, atkTimer:0.15, blockedEnemies:[], hitFlash:0, atkAnim:0 };
+    state.operators.push(newOp);
+    if (opDef.id === 'wisadel' || opDef.id === 'kaltsit' || opDef.id === 'ling') spawnSummonsForOperator(newOp, 1);
     state.selectedCardId = null; state.placingTile = null; dirHint.classList.add('hidden');
     sfx.play('deploy');
     const c = gridToCenter(col, row);
@@ -3481,10 +3676,38 @@
     const c = gridToCenter(op.col, op.row);
     state.effects.push({ type:'RING', x:c.x, y:c.y, maxR:layout.tileSize*2.1, color:'#f59e0b', life:0.45, maxLife:0.45 });
     state.floatingTexts.push({ x:c.x, y:c.y-24, text:sk.name+'!', color:'#fbbf24', size:15, life:0.75, maxLife:0.75 });
+    if (op.id === 'wisadel') spawnSummonsForOperator(op, 2);
+    else if (op.id === 'kaltsit' || op.id === 'ling') spawnSummonsForOperator(op, 1);
     if (sk.type === 'INSTANT_SWORD_RAIN') {
       state.dp = Math.min(99, state.dp + (op.def.skill.dpGain || 12));
       state.floatingTexts.push({ x:c.x, y:c.y-42, text:'+12 COST', color:'#38bdf8', size:13, life:0.85, maxLife:0.85 });
-      for (const e of state.enemies) {
+      // Render Summons (維什戴爾魂靈之影 / 凱爾希Mon3tr / 令清平龍影)
+    for (const sm of (state.summons || [])) {
+      const sx = ox + (sm.col + 0.5) * ts, sy = oy + (sm.row + 0.5) * ts;
+      const bob = Math.sin(state.time * 5 + sm.uid) * 3.5;
+      ctx.save();
+      ctx.translate(sx, sy + bob);
+      // Spectral base aura
+      ctx.strokeStyle = sm.color; ctx.lineWidth = 2; ctx.shadowColor = sm.glow; ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.ellipse(0, ts * 0.22, ts * 0.34, ts * 0.13, 0, 0, Math.PI * 2); ctx.stroke();
+      if (sm.type === 'REVENANT') {
+        // 魂靈之影：赤紅漂浮薩卡茲砲台魂影
+        ctx.fillStyle = 'rgba(127,29,29,0.92)';
+        ctx.beginPath(); ctx.moveTo(0, -ts*0.36); ctx.lineTo(ts*0.24, -ts*0.04); ctx.lineTo(0, ts*0.18); ctx.lineTo(-ts*0.24, -ts*0.04); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = '#fb923c'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#fef08a'; ctx.beginPath(); ctx.arc(0, -ts*0.06, ts*0.08, 0, Math.PI*2); ctx.fill();
+      } else {
+        // Mon3tr / 清平龍影：晶體巨獸剪影
+        ctx.fillStyle = sm.type === 'MON3TR' ? 'rgba(6,78,59,0.92)' : 'rgba(12,74,110,0.92)';
+        ctx.beginPath(); ctx.arc(0, -ts*0.08, ts*0.26, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = sm.glow; ctx.lineWidth = 2.4; ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#fef08a'; ctx.font = `bold ${Math.max(9, ts*0.14)}px sans-serif`; ctx.textAlign = 'center';
+      ctx.fillText(sm.name, 0, ts * 0.38);
+      ctx.restore();
+    }
+    for (const e of state.enemies) {
         if (Math.hypot(e.gx-(op.col+0.5), e.gy-(op.row+0.5)) <= 2.5) {
           const ex = layout.offsetX + e.gx * layout.tileSize, ey = layout.offsetY + e.gy * layout.tileSize;
           state.effects.push({ type:'SWORD_RAIN', x:ex, y:ey, color:'#38bdf8', life:0.55, maxLife:0.55 });
@@ -3509,13 +3732,13 @@
     const idx = state.operators.indexOf(op); if (idx === -1) return;
     if (refund) state.dp = Math.min(99, state.dp + Math.floor(op.stats.cost * 0.5));
     for (const e of op.blockedEnemies) if (e.blockedBy === op) e.blockedBy = null;
-    state.operators.splice(idx, 1); state.cooldowns[op.id] = op.def.role === '特種' ? 12 : 24;
+    state.operators.splice(idx, 1); state.summons = state.summons.filter(s => s.ownerUid !== op.uid); const baseRd = Math.round((op.stats.redeploy || 70) * 0.35 * (save.squad.includes('silverash') ? 0.9 : 1.0)); state.cooldowns[op.id] = Math.max(8, baseRd);
     if (state.inspectedOp === op) selectInspectedOp(null);
     sfx.play('click'); updateHud();
   }
 
   function getEffectiveAtk(op) {
-    let a = op.stats.atk;
+    let a = op.stats.atk * ((op.def.role === '術師' && save.squad.includes('eyja')) ? 1.12 : 1.0);
     if (op.skillActive > 0) {
       const t = op.def.skill.type, m = op.stats.skillMult;
       if (op.id === 'surtr') a *= 3.3 * m; // 黃昏 ATK +330%!
@@ -3544,8 +3767,9 @@
     }
     return iv;
   }
-  function dealDamageToEnemy(e, rawAtk, dmgType) { if (dmgType === 'TRUE') { const dmg = Math.max(1, Math.round(rawAtk)); e.hp -= dmg; e.hitFlash = 0.14; state.floatingTexts.push({ x: layout.offsetX + e.gx * layout.tileSize, y: layout.offsetY + e.gy * layout.tileSize - 18, text: `-${dmg}`, color: '#f8fafc', life: 0.65 }); return; }
-    const dmg = dmgType === 'PHYS' ? Math.max(rawAtk * 0.05, rawAtk - e.def.def) : Math.max(rawAtk * 0.05, rawAtk * (1 - e.def.res / 100));
+  function dealDamageToEnemy(e, rawAtk, dmgType, ignoreRes = 0) { if (dmgType === 'TRUE') { const dmg = Math.max(1, Math.round(rawAtk)); e.hp -= dmg; e.hitFlash = 0.14; state.floatingTexts.push({ x: layout.offsetX + e.gx * layout.tileSize, y: layout.offsetY + e.gy * layout.tileSize - 18, text: `-${dmg}`, color: '#f8fafc', size: 12, life: 0.65, maxLife: 0.65 }); return; }
+    const effRes = Math.max(0, (e.def.res || 0) - ignoreRes);
+    const dmg = dmgType === 'PHYS' ? Math.max(rawAtk * 0.05, rawAtk - e.def.def) : Math.max(rawAtk * 0.05, rawAtk * (1 - effRes / 100));
     e.hp -= dmg; e.hitFlash = 0.14;
     state.floatingTexts.push({ x: layout.offsetX + e.gx * layout.tileSize, y: layout.offsetY + e.gy * layout.tileSize - 16, text: `${Math.round(dmg)}`, color: (dmgType === 'ARTS' || dmgType === 'INCANTATION') ? '#c084fc' : '#fb923c', size: 12, life: 0.7, maxLife: 0.7 });
   }
@@ -3564,7 +3788,7 @@
     for (const w of state.spawnQueue) {
       if (!w.spawned && state.time >= w.t) {
         w.spawned = true; const def = ENEMIES[w.type], wps = state.stage.paths[w.path];
-        const sc = state.stage.enemyScale || 1.0, am = state.stage.abyssMod || { atkMult:1, defMult:1, spdMult:1 };
+        const sc = (state.stage.enemyScale || 1.0) * (state.challengeMode ? 1.25 : 1.0), am = state.stage.abyssMod || { atkMult:1, defMult:1, spdMult:1 };
         const eDef = { ...def, maxHp: Math.round(def.maxHp * sc), atk: Math.round(def.atk * sc * am.atkMult), def: Math.round(def.def * am.defMult), speed: def.speed * am.spdMult };
         state.enemies.push({ uid:state.nextUid++, type:w.type, def:eDef, waypoints:wps, wpIndex:1, gx:wps[0][0]+0.5, gy:wps[0][1]+0.5, hp:eDef.maxHp, blockedBy:null, atkTimer:0.4, stunTimer:0, slowTimer:0, hitFlash:0, progress:0 });
         if (def.boss) { document.getElementById('boss-banner-name').textContent = `${def.name} 侵入戰場`; bossBanner.classList.remove('hidden'); bossBanner.firstElementChild.classList.remove('animate-boss-banner'); void bossBanner.offsetWidth; bossBanner.firstElementChild.classList.add('animate-boss-banner'); sfx.play('leak'); }
@@ -3573,7 +3797,9 @@
     for (const op of [...state.operators]) {
       op.hitFlash = Math.max(0, op.hitFlash - dt); op.atkAnim = Math.max(0, op.atkAnim - dt);
       op.blockedEnemies = op.blockedEnemies.filter(e => e.hp > 0 && state.enemies.includes(e));
-      if (op.skillActive > 0) op.skillActive = Math.max(0, op.skillActive - dt); else op.sp = Math.min(op.stats.spCost, op.sp + dt);
+      const spRate = state.operators.some(o => o.id === 'ptilopsis') ? 1.3 : 1.0;
+      if (op.skillActive > 0) op.skillActive = Math.max(0, op.skillActive - dt); else op.sp = Math.min(op.stats.spCost, op.sp + dt * spRate);
+      if (op.def.role === '先鋒' && state.operators.some(o => o.id === 'myrtle') && op.hp < op.stats.maxHp) op.hp = Math.min(op.stats.maxHp, op.hp + 25 * dt);
       op.atkTimer -= dt;
       if (op.atkTimer <= 0) {
         const rangeTiles = getAttackTiles(op.def, op.col, op.row, op.dir, op.skillActive > 0 && Boolean(op.def.skill.skillRange));
@@ -3671,7 +3897,7 @@
               const prevHp = target.hp;
               for (let hi = 0; hi < hits; hi++) {
                 const effDmgType = (op.skillActive > 0 && op.def.skill.trueDmg) ? 'TRUE' : op.def.dmgType;
-                dealDamageToEnemy(target, hi === 0 ? atk : Math.round(atk * (op.def.branch === '投擲手' ? 0.5 : 1.0)), effDmgType);
+                dealDamageToEnemy(target, hi === 0 ? atk : Math.round(atk * (op.def.branch === '投擲手' ? 0.5 : 1.0)), effDmgType, op.id === 'surtr' ? 20 : 0);
                 if (op.skillActive > 0 && op.def.skill.stunOnHit) target.stunTimer = Math.max(target.stunTimer, op.def.skill.stunOnHit);
               }
               if (op.def.splash) {
@@ -3699,6 +3925,29 @@
         }
       }
     }
+    // Update Battlefield Summons (魂靈之影 / Mon3tr / 清平龍影)
+    for (let si = state.summons.length - 1; si >= 0; si--) {
+      const sm = state.summons[si];
+      sm.hitFlash = Math.max(0, sm.hitFlash - dt);
+      sm.atkTimer -= dt;
+      if (sm.atkTimer <= 0) {
+        const scands = state.enemies.filter(e => e.hp > 0 && (!e.def.flying || sm.antiAir) && Math.hypot(e.gx - (sm.col + 0.5), e.gy - (sm.row + 0.5)) <= sm.range);
+        if (scands.length > 0) {
+          scands.sort((a, b) => b.progress - a.progress);
+          const tgt = scands[0];
+          sm.atkTimer = sm.atkInterval;
+          const sc1 = gridToCenter(sm.col, sm.row), tx = layout.offsetX + tgt.gx * layout.tileSize, ty = layout.offsetY + tgt.gy * layout.tileSize;
+          if (sm.type === 'REVENANT') {
+            state.effects.push({ type:'ARTS_ORB', x1:sc1.x, y1:sc1.y, x2:tx, y2:ty, color:'#f97316', life:0.24, maxLife:0.24 });
+            state.effects.push({ type:'RING', x:tx, y:ty, maxR:layout.tileSize*0.8, color:'#ef4444', life:0.28, maxLife:0.28 });
+            tgt.slowTimer = Math.max(tgt.slowTimer, 1.2);
+          } else {
+            state.effects.push({ type:'SLASH_ARC', x:tx, y:ty, dir:'RIGHT', r:layout.tileSize*0.62, color:sm.color, life:0.22, maxLife:0.22 });
+          }
+          dealDamageToEnemy(tgt, sm.atk, sm.dmgType);
+        }
+      }
+    }
     for (let i = state.enemies.length - 1; i >= 0; i--) {
       const e = state.enemies[i];
       e.hitFlash = Math.max(0, e.hitFlash - dt); e.stunTimer = Math.max(0, e.stunTimer - dt); e.slowTimer = Math.max(0, e.slowTimer - dt);
@@ -3710,7 +3959,7 @@
       if (e.blockedBy) { if (e.atkTimer <= 0) { e.atkTimer = e.def.atkInterval; dealDamageToOperator(e.blockedBy, e.def.atk, e.def.dmgType); } }
       else {
         let shot = false;
-        if (e.def.ranged) { let near = null, bd = e.def.range; for (const o of state.operators) { const d = Math.hypot((o.col+0.5)-e.gx, (o.row+0.5)-e.gy); if (d <= bd) { bd = d; near = o; } } if (near) { shot = true; if (e.atkTimer <= 0) {
+        if (e.def.ranged) { let near = null, bd = e.def.range; for (const o of state.operators) { if (o.id === 'wisadel' && state.summons.some(s => s.ownerUid === o.uid)) continue; const d = Math.hypot((o.col+0.5)-e.gx, (o.row+0.5)-e.gy); if (d <= bd) { bd = d; near = o; } } if (near) { shot = true; if (e.atkTimer <= 0) {
                 e.atkTimer = e.def.atkInterval;
                 const ex = layout.offsetX + e.gx * layout.tileSize, ey = layout.offsetY + e.gy * layout.tileSize;
                 const oc = gridToCenter(near.col, near.row);
@@ -3756,6 +4005,16 @@
         if (st.rewards.firstCerts) { save.certs += st.rewards.firstCerts; rwParts.push(`黃票+${st.rewards.firstCerts}`); }
       }
       if (st.category === 'abyss' && st.floor) save.abyssBestFloor = Math.max(save.abyssBestFloor || 0, st.floor);
+      if (state.challengeMode && st.category === 'main') {
+        save.challengeCleared = save.challengeCleared || {};
+        save.challengeOpClaimed = save.challengeOpClaimed || {};
+        save.challengeCleared[st.id] = true;
+        if (!save.challengeOpClaimed[st.id]) {
+          save.challengeOpClaimed[st.id] = true;
+          save.originite += 1;
+          rwParts.push('☠突襲首通 ◆源石+1');
+        }
+      }
       persistSave(); sfx.play('win');
     } else sfx.play('leak');
 
@@ -4315,6 +4574,8 @@
   // Stages & Squad
   document.getElementById('stage-back-lobby').addEventListener('click', () => { sfx.play('click'); switchView('LOBBY'); });
   document.querySelectorAll('.s-tab-btn').forEach(b => b.addEventListener('click', () => { sfx.play('click'); state.activeStageTab = b.dataset.stab; renderStageMap(); }));
+  const chToggleEl = document.getElementById('btn-toggle-challenge');
+  if (chToggleEl) chToggleEl.addEventListener('click', () => { sfx.play('click'); state.challengeMode = !state.challengeMode; renderStageMap(); });
   document.getElementById('btn-to-squad-prep').addEventListener('click', () => { const st = STAGES.find(s => s.id === state.selectedStageId); if (!st || !isStageUnlocked(st)) return; sfx.play('click'); state.squadMode = 'BATTLE_PREP'; switchView('SQUAD'); });
   document.getElementById('btn-reset-progress').addEventListener('click', () => { sfx.play('click'); save.cleared = {}; persistSave(); state.selectedStageId = '0-1'; renderStageMap(); showGlobalToast('主線進度已重置！'); });
   document.getElementById('squad-back-btn').addEventListener('click', () => { sfx.play('click'); switchView(state.squadMode === 'BATTLE_PREP' ? 'STAGES' : 'LOBBY'); });
@@ -4402,14 +4663,77 @@
       showGlobalToast(`✦ ${op.name} 技能專精${['','一','二','三'][d.mastery]} (M${d.mastery}) 完成！`);
     }
   });
+  function renderModuleModal() {
+    const op = OP_MAP[state.archiveOpId]; if (!op || !isOwned(op.id)) return;
+    const d = save.owned[op.id];
+    d.modUnlockX = Math.max(d.modUnlockX || 0, d.moduleLv || 0);
+    d.modUnlockY = d.modUnlockY || 0;
+    const curType = d.moduleType || (d.moduleLv > 0 ? 'X' : 'NONE');
+    const curStg  = curType === 'NONE' ? 0 : (typeof d.moduleEquipStage === 'number' ? d.moduleEquipStage : (d.moduleLv || 0));
+    document.getElementById('mod-modal-title').textContent = `${op.name} · 專屬模組（${op.branch || op.role}）`;
+    document.getElementById('mod-current-status').textContent = curType === 'NONE' ? '當前裝備：未裝備模組' : `當前裝備：${curType} 型模組 · 第 ${curStg} 階 (Stage ${curStg})`;
+
+    const specs = [
+      { key:'X', name:`${op.branch || op.role} · X 型模組（強攻特化）`, unlocked: d.modUnlockX,
+        stages: [
+          { st:1, cost:15000, desc:'Stage 1：攻擊力 +6%，強化職業輸出特性' },
+          { st:2, cost:25000, desc:'Stage 2：攻擊力 +12%，技能倍率 +8%' },
+          { st:3, cost:35000, desc:'Stage 3：攻擊力 +18%，技能倍率 +15%' }
+        ] },
+      { key:'Y', name:`${op.branch || op.role} · Y 型模組（戰術生存）`, unlocked: d.modUnlockY,
+        stages: [
+          { st:1, cost:15000, desc:'Stage 1：生命/防禦 +8%，部署費用 -1' },
+          { st:2, cost:25000, desc:'Stage 2：生命 +14%，法抗 +8，再部署 -6s' },
+          { st:3, cost:35000, desc:'Stage 3：生命 +20%，法抗 +12，費用 -2，技力 -2' }
+        ] }
+    ];
+    const box = document.getElementById('mod-cards-container'); box.innerHTML = '';
+    specs.forEach(sp => {
+      const card = document.createElement('div');
+      card.className = `p-3.5 ak-chamfer-sm border space-y-2.5 ${curType === sp.key ? 'bg-rose-950/30 border-rose-400' : 'bg-slate-950/90 border-slate-700'}`;
+      let stagesHtml = '';
+      sp.stages.forEach(s => {
+        const isUnlocked = sp.unlocked >= s.st;
+        const canUnlock = sp.unlocked === s.st - 1;
+        const isEquipped = curType === sp.key && curStg === s.st;
+        stagesHtml += `<div class="p-2 bg-slate-900 border ${isEquipped?'border-amber-400':'border-slate-800'} flex items-center justify-between gap-2"><div class="text-[11px] ${isUnlocked?'text-slate-200':'text-slate-500'}">${s.desc}</div><button data-mkey="${sp.key}" data-mst="${s.st}" data-action="${isUnlocked?'equip':'unlock'}" class="mod-act-btn px-2 py-1 text-[10px] font-black ak-chamfer-sm shrink-0 ${isEquipped?'bg-amber-400 text-slate-950':isUnlocked?'bg-emerald-500 hover:bg-emerald-400 text-slate-950':canUnlock?'bg-sky-500 hover:bg-sky-400 text-slate-950':'bg-slate-800 text-slate-500'}" ${(!isUnlocked && !canUnlock)?'disabled':''}>${isEquipped?'✓ 裝備中':isUnlocked?`選用 ${s.st}階`:canUnlock?`解鎖 (${(s.cost/1000)}k幣)`:'需先解鎖前階'}</button></div>`;
+      });
+      card.innerHTML = `<div class="flex items-center justify-between"><span class="text-xs font-black text-white">${sp.name}</span><span class="text-[10px] font-mono-tech text-rose-300">已解鎖 ${sp.unlocked}/3 階</span></div><div class="space-y-1.5">${stagesHtml}</div>`;
+      box.appendChild(card);
+    });
+
+    box.querySelectorAll('.mod-act-btn').forEach(btn => btn.addEventListener('click', () => {
+      const mk = btn.dataset.mkey, mst = Number(btn.dataset.mst), act = btn.dataset.action;
+      if (act === 'unlock') {
+        const cost = [0, 15000, 25000, 35000][mst];
+        if (save.lmd < cost) { showGlobalToast(`龍門幣不足（解鎖第 ${mst} 階需 ${cost.toLocaleString()}）`); return; }
+        save.lmd -= cost;
+        if (mk === 'X') d.modUnlockX = mst; else d.modUnlockY = mst;
+        d.moduleType = mk; d.moduleEquipStage = mst; d.moduleLv = Math.max(d.modUnlockX || 0, d.modUnlockY || 0);
+        save.dailyUpgradeDone = true; sfx.play('ssr'); persistSave(); renderModuleModal(); renderOperatorArchive();
+        showGlobalToast(`✦ ${op.name} 已解鎖並裝備 ${mk} 模組 Stage ${mst}！`);
+      } else {
+        d.moduleType = mk; d.moduleEquipStage = mst;
+        sfx.play('click'); persistSave(); renderModuleModal(); renderOperatorArchive();
+        showGlobalToast(`已切換為 ${mk} 模組 · 第 ${mst} 階 (Stage ${mst})`);
+      }
+    }));
+  }
   document.getElementById('btn-up-module').addEventListener('click', () => {
     const op = OP_MAP[state.archiveOpId]; if (!isOwned(op.id)) return;
-    const d = save.owned[op.id]; d.moduleLv = d.moduleLv || 0;
-    if (op.rarity < 4 || d.elite < 2 || d.level < 40 || d.moduleLv >= 3) return;
-    const cost = 18000 + d.moduleLv * 14000;
-    if (save.lmd < cost) { showGlobalToast(`模組升級龍門幣不足（需 ${cost.toLocaleString()}）`); return; }
-    save.lmd -= cost; d.moduleLv += 1; save.dailyUpgradeDone = true; persistSave(); sfx.play('ssr'); renderOperatorArchive();
-    showGlobalToast(`✦ ${op.name} 專屬模組已升級至 MOD Lv.${d.moduleLv}！`);
+    const d = save.owned[op.id];
+    if (op.rarity < 4 || d.elite < 2 || d.level < 40) return;
+    sfx.play('click'); renderModuleModal();
+    const mm = document.getElementById('module-modal'); mm.classList.remove('hidden'); mm.classList.add('flex');
+  });
+  document.getElementById('module-close').addEventListener('click', () => {
+    sfx.play('click'); const mm = document.getElementById('module-modal'); mm.classList.add('hidden'); mm.classList.remove('flex');
+  });
+  document.getElementById('btn-mod-unequip').addEventListener('click', () => {
+    const op = OP_MAP[state.archiveOpId]; if (!op || !isOwned(op.id)) return;
+    save.owned[op.id].moduleType = 'NONE'; save.owned[op.id].moduleEquipStage = 0;
+    sfx.play('click'); persistSave(); renderModuleModal(); renderOperatorArchive();
+    showGlobalToast(`已卸下 ${op.name} 的專屬模組。`);
   });
   document.getElementById('btn-up-pot').addEventListener('click', () => {
     const op = OP_MAP[state.archiveOpId]; if (!isOwned(op.id)) return;
