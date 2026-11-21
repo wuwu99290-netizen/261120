@@ -84,6 +84,7 @@
         <div class="flex items-center gap-1 bg-slate-950/90 border border-slate-600/80 px-2 py-1 ak-chamfer-sm">
           <span class="text-[10px] text-sky-400 font-bold">理智</span>
           <span id="res-sanity-val" class="font-mono-tech text-xs font-black text-white">120/120</span>
+          <span id="res-sanity-timer" class="hidden text-[9px] font-mono-tech text-sky-300">(06:00)</span>
           <button id="btn-refill-sanity" class="ml-0.5 px-1 text-[10px] bg-sky-500/25 hover:bg-sky-500/45 text-sky-300 font-bold" title="消耗1源石補滿理智">+</button>
         </div>
         <div class="flex items-center gap-1 bg-slate-950/90 border border-slate-600/80 px-2 py-1 ak-chamfer-sm">
@@ -102,6 +103,12 @@
           <span class="text-[10px] text-emerald-300 font-bold">作戰記錄</span>
           <span id="res-exp-val" class="font-mono-tech text-xs font-bold text-white">25</span>
         </div>
+        <button id="lobby-mail-btn" class="relative px-2 py-1 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-sky-400/60 text-sky-200 ak-chamfer-sm transition">
+          ✉ 郵箱 <span id="mail-unread-badge" class="hidden ml-0.5 px-1 text-[9px] font-black bg-rose-500 text-white rounded-sm">0</span>
+        </button>
+        <button id="lobby-friends-btn" class="px-2 py-1 text-xs font-bold bg-slate-900 hover:bg-slate-800 border border-emerald-400/60 text-emerald-200 ak-chamfer-sm transition">
+          👥 好友
+        </button>
         <button id="lobby-daily-btn" class="px-2.5 py-1 text-xs font-black bg-amber-500 hover:bg-amber-400 text-slate-950 ak-chamfer-sm transition">
           🎁 簽到
         </button>
@@ -337,6 +344,48 @@
       <button id="rp-confirm-btn" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm tracking-widest ak-chamfer-sm transition">
         開始公開招募
       </button>
+    </div>
+  </div>
+
+  <!-- ==================== MAIL MODAL (羅德島郵箱) ==================== -->
+  <div id="mail-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+    <div class="w-full max-w-2xl bg-slate-900 border-2 border-sky-400/70 ak-chamfer shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <header class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-mono-tech tracking-widest text-sky-400">RHODES ISLAND // MAILBOX</div>
+          <h3 class="text-lg font-black text-white">羅德島終端郵箱</h3>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-claim-all-mails" class="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black ak-chamfer-sm">一鍵領取全部</button>
+          <button id="mail-close" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold text-white ak-chamfer-sm">關閉 ✕</button>
+        </div>
+      </header>
+      <div id="mail-list" class="flex-1 overflow-y-auto p-4 space-y-2.5"></div>
+    </div>
+  </div>
+
+  <!-- ==================== FRIENDS & SUPPORT UNIT MODAL (好友與助戰系統) ==================== -->
+  <div id="friends-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+    <div class="w-full max-w-2xl bg-slate-900 border-2 border-emerald-400/70 ak-chamfer shadow-2xl overflow-hidden flex flex-col max-h-[86vh]">
+      <header class="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <div class="text-[10px] font-mono-tech tracking-widest text-emerald-400">RHODES ISLAND // FRIENDS &amp; SUPPORT</div>
+          <h3 class="text-lg font-black text-white">好友列表 &amp; 助戰幹員借用</h3>
+        </div>
+        <button id="friends-close" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold text-white ak-chamfer-sm">關閉 ✕</button>
+      </header>
+      <div class="px-5 py-2.5 bg-slate-950/80 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-slate-400">我的博士 ID：</span>
+          <span id="my-friend-id" class="font-mono-tech font-black text-sky-300 bg-slate-900 px-2 py-0.5 border border-sky-500/40">DR#000001</span>
+          <span id="active-support-label" class="text-amber-300 font-bold">當前助戰：未選擇</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <input id="add-friend-input" type="text" placeholder="輸入好友暱稱或ID..." class="px-2 py-1 bg-slate-900 border border-slate-700 text-xs text-white w-36 ak-chamfer-sm outline-none" />
+          <button id="btn-add-friend" class="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs ak-chamfer-sm">+ 加好友</button>
+        </div>
+      </div>
+      <div id="friends-list" class="flex-1 overflow-y-auto p-4 space-y-2.5"></div>
     </div>
   </div>
 
@@ -1956,6 +2005,13 @@
       ownedSkins: [],        // ['skin_texas', ...]
       equippedSkins: {},     // { texas: 'skin_texas' }
       sanity: 120, maxSanity: 120,
+      lastSanityTick: Date.now(),
+      claimedMails: {},
+      doctorCode: 'DR#' + String(Math.floor(100000 + Math.random() * 899999)),
+      customFriends: [],
+      visitedFriendsDate: '',
+      visitedFriends: {},
+      activeSupport: null,
       lmd: 30000,
       expRecords: 25,
       orundum: 6000,
@@ -2019,6 +2075,9 @@
   const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
   const isOwned = id => Boolean(save.owned[id]);
   const getOwnedData = id => {
+    if (state && state.view === 'BATTLE' && save.activeSupport && save.activeSupport.opId === id && !save.squad.includes(id)) {
+      return { level:90, elite:2, skillLv:7, mastery:3, moduleLv:3, trust:100, pot:6, frags:0 };
+    }
     const raw = save.owned[id];
     if (!raw) return { level:1, elite:0, skillLv:1, mastery:0, moduleLv:0, trust:0, pot:1, frags:0 };
     return { level:1, elite:0, skillLv:1, mastery:0, moduleLv:0, trust:0, pot:1, frags:0, ...raw };
@@ -2156,6 +2215,9 @@
     const nextMain = mains.find(s => !(save.cleared[s.id] > 0)) || mains[mains.length - 1];
     document.getElementById('lobby-next-stage').textContent = `${nextMain.code} ${nextMain.name.split(' ')[0]}`;
     document.getElementById('lobby-clear-summary').textContent = `主線 ${clearedMains}/${mains.length} · 含 CE-5 / LS-5 / 殲滅作戰`;
+    tickSanityRegen();
+    const mub = document.getElementById('mail-unread-badge');
+    if (mub) { const uc = countUnreadMails(); mub.textContent = String(uc); mub.classList.toggle('hidden', uc <= 0); }
     const mb = document.getElementById('missions-ready-badge'); if (mb) { const mc = countClaimableMissions(); mb.textContent = mc > 0 ? `可領 ${mc}` : '完成'; mb.className = mc > 0 ? 'px-1.5 py-0.5 text-[10px] font-black bg-amber-500 text-slate-950' : 'px-1.5 py-0.5 text-[10px] font-bold bg-slate-800 text-slate-400'; }
     document.getElementById('lobby-squad-count').textContent = `出戰：${save.squad.length} / 8 人`;
     document.getElementById('lobby-owned-count').textContent = `已持有：${Object.keys(save.owned).length} / ${OPERATORS.length}`;
@@ -2429,6 +2491,125 @@
     });
   }
 
+
+
+  // ==================== AUTOMATIC SANITY REGENERATION (+1 / 6 MIN, REALTIME & OFFLINE) ====================
+  const SANITY_REGEN_MS = 6 * 60 * 1000; // 6 minutes per +1 Sanity (Authentic Arknights!)
+  function tickSanityRegen() {
+    const now = Date.now();
+    if (!save.lastSanityTick) save.lastSanityTick = now;
+    if (save.sanity >= save.maxSanity) {
+      save.lastSanityTick = now;
+      const tm = document.getElementById('res-sanity-timer');
+      if (tm) tm.classList.add('hidden');
+      return;
+    }
+    const elapsed = now - save.lastSanityTick;
+    if (elapsed >= SANITY_REGEN_MS) {
+      const gained = Math.floor(elapsed / SANITY_REGEN_MS);
+      save.sanity = Math.min(save.maxSanity, save.sanity + gained);
+      save.lastSanityTick = save.sanity >= save.maxSanity ? now : save.lastSanityTick + gained * SANITY_REGEN_MS;
+      persistSave();
+      const sv = document.getElementById('res-sanity-val');
+      if (sv) sv.textContent = `${save.sanity}/${save.maxSanity}`;
+    }
+    const tm = document.getElementById('res-sanity-timer');
+    if (tm) {
+      if (save.sanity < save.maxSanity) {
+        const remSec = Math.max(0, Math.ceil((SANITY_REGEN_MS - (now - save.lastSanityTick)) / 1000));
+        const m = String(Math.floor(remSec / 60)).padStart(2, '0'), s = String(remSec % 60).padStart(2, '0');
+        tm.textContent = `(${m}:${s})`;
+        tm.classList.remove('hidden');
+      } else tm.classList.add('hidden');
+    }
+  }
+  setInterval(tickSanityRegen, 1000);
+
+  // ==================== RHODES ISLAND MAILBOX SYSTEM (郵箱系統) ====================
+  const SYSTEM_MAILS = [
+    { id:'mail_welcome', sender:'凱爾希 // 醫療部', date:'2024-07-27', title:'羅德島入職戰備物資補給',
+      body:'博士，歡迎回到羅德島。以下為後勤部為你準備的初期作戰物資與應急理智液，請妥善調配使用。',
+      rewardText:'龍門幣 20,000 + 作戰記錄 ×15 + 理智 +100',
+      give:() => { save.lmd += 20000; save.expRecords += 15; save.sanity += 100; } },
+    { id:'mail_summer2024', sender:'PRTS // 活動通知', date:'2024-07-28', title:'【在流沙上刻印】2024夏季慶典賀禮',
+      body:'2024 年 7 月夏季限定尋訪開啟！特此發放限定尋訪憑證與合成玉，祝博士十連雙黃！',
+      rewardText:'限定尋訪憑證 ×5 + 合成玉 ×1,800',
+      give:() => { save.limitedTickets = (save.limitedTickets||0)+5; save.orundum += 1800; } },
+    { id:'mail_amiya', sender:'阿米婭 // 羅德島領袖', date:'2024-07-29', title:'來自阿米婭的作戰慰問信',
+      body:'博士，最近的作戰辛苦了！大家都很信賴你的指揮，這裡有一點至純源石和招聘許可，記得去看看公開招募喔！',
+      rewardText:'◆至純源石 ×3 + 招聘許可 ×5 + 加急許可 ×5',
+      give:() => { save.originite += 3; save.recruitPermits += 5; save.expeditePlans += 5; } },
+    { id:'mail_closure', sender:'可露希爾 // 採購部', date:'2024-07-30', title:'工程部系統升級維護補償',
+      body:'嘿嘿，我們把全體幹員的 Spine 動態小人、195 關主線跟深淵挑戰都裝好了！這點補償拿去抽卡吧！',
+      rewardText:'合成玉 ×600 + 標準尋訪券 ×2 + 龍門幣 10,000',
+      give:() => { save.orundum += 600; save.tickets += 2; save.lmd += 10000; } }
+  ];
+  function countUnreadMails() {
+    return SYSTEM_MAILS.filter(m => !save.claimedMails?.[m.id]).length;
+  }
+  function renderMailModal() {
+    const el = document.getElementById('mail-list'); el.innerHTML = '';
+    SYSTEM_MAILS.forEach(m => {
+      const claimed = Boolean(save.claimedMails?.[m.id]);
+      const card = document.createElement('div');
+      card.className = `p-4 ak-chamfer-sm border space-y-2 ${claimed ? 'bg-slate-950/50 border-slate-800 opacity-65' : 'bg-slate-950/95 border-sky-500/60'}`;
+      card.innerHTML = `<div class="flex items-start justify-between gap-2"><div><div class="text-[10px] font-mono-tech text-sky-400">${m.sender} · ${m.date}</div><div class="text-sm font-black text-white mt-0.5">${m.title}</div></div><button class="px-3 py-1.5 text-xs font-black ak-chamfer-sm shrink-0 ${claimed?'bg-slate-800 text-slate-500':'bg-sky-500 hover:bg-sky-400 text-slate-950'}" ${claimed?'disabled':''}>${claimed?'已領取':'領取附件'}</button></div><p class="text-xs text-slate-300 leading-relaxed">${m.body}</p><div class="text-[11px] font-mono-tech text-amber-300 bg-slate-900 px-2.5 py-1 border-l-2 border-amber-400">附件：${m.rewardText}</div>`;
+      if (!claimed) {
+        card.querySelector('button').addEventListener('click', () => {
+          save.claimedMails = save.claimedMails || {};
+          save.claimedMails[m.id] = true;
+          m.give(); sfx.play('ssr'); persistSave(); renderMailModal(); renderLobby();
+          showGlobalToast(`✉ 已領取郵件附件：${m.rewardText}`);
+        });
+      }
+      el.appendChild(card);
+    });
+  }
+
+  // ==================== FRIENDS & SUPPORT UNIT SYSTEM (好友與助戰系統) ====================
+  const DEFAULT_FRIENDS = [
+    { id:'FR#1035', name:'卡茲戴爾爆破王', lv:120, supportOpId:'wisadel', note:'精二滿級專三維什戴爾，隨便借！' },
+    { id:'FR#4064', name:'臨光家大叔', lv:118, supportOpId:'mlynar', note:'未照耀的榮光專三，清場無壓力。' },
+    { id:'FR#2025', name:'大荒城天師', lv:115, supportOpId:'shu', note:'精二滿級黍，奶盾控場二合一！' },
+    { id:'FR#0172', name:'喀蘭貿易總裁', lv:120, supportOpId:'silverash', note:'真銀斬專三＋反隱，開荒必備。' },
+    { id:'FR#0350', name:'冰淇淋愛好者', lv:112, supportOpId:'surtr', note:'黃昏專三史爾特爾，專切各章BOSS。' },
+    { id:'FR#1016', name:'火山學者艾雅', lv:110, supportOpId:'eyja_alt', note:'全圖治療純燼艾雅法拉，深淵神奶。' }
+  ];
+  function getAllFriends() { return [...DEFAULT_FRIENDS, ...(save.customFriends || [])]; }
+  function renderFriendsModal() {
+    document.getElementById('my-friend-id').textContent = save.doctorCode || 'DR#100001';
+    const supLbl = document.getElementById('active-support-label');
+    if (save.activeSupport && OP_MAP[save.activeSupport.opId]) {
+      supLbl.textContent = `當前助戰：${OP_MAP[save.activeSupport.opId].name} (精2 Lv.90 專三)`;
+    } else supLbl.textContent = '當前助戰：未選擇（點下方「借用助戰」即可帶入戰鬥）';
+
+    const td = todayStr();
+    if (save.visitedFriendsDate !== td) { save.visitedFriendsDate = td; save.visitedFriends = {}; }
+    const el = document.getElementById('friends-list'); el.innerHTML = '';
+    getAllFriends().forEach(fr => {
+      const op = OP_MAP[fr.supportOpId] || OP_MAP.silverash;
+      const visited = Boolean(save.visitedFriends?.[fr.id]);
+      const isActiveSup = save.activeSupport && save.activeSupport.friendId === fr.id;
+      const row = document.createElement('div');
+      row.className = `p-3 ak-chamfer-sm border flex flex-wrap items-center justify-between gap-3 ${isActiveSup ? 'bg-amber-950/35 border-amber-400' : 'bg-slate-950/90 border-slate-700'}`;
+      row.innerHTML = `<div class="flex items-center gap-3 min-w-0"><img src="${getOpArtUrl(op, false)}" alt="${op.name}" onerror="window.__akImgFallback(this,'${op.id}')" class="w-12 h-12 object-cover object-center border-2 border-orange-400 ak-chamfer-sm shrink-0 bg-slate-900" /><div class="min-w-0"><div class="flex items-center gap-2"><span class="text-sm font-black text-white">${fr.name}</span><span class="text-[10px] font-mono-tech text-slate-400">${fr.id} · Lv.${fr.lv}</span></div><div class="text-xs text-amber-300 font-bold">助戰：${op.name}（精2 Lv.90 · 專精三）</div><div class="text-[11px] text-slate-400 truncate">${fr.note}</div></div></div><div class="flex items-center gap-1.5 shrink-0"><button class="btn-visit px-2.5 py-1.5 text-xs font-bold ak-chamfer-sm ${visited?'bg-slate-800 text-slate-500':'bg-sky-500/20 hover:bg-sky-500/40 border border-sky-400/60 text-sky-200'}" ${visited?'disabled':''}>${visited?'今日已訪問':'訪問會客室'}</button><button class="btn-borrow px-2.5 py-1.5 text-xs font-black ak-chamfer-sm ${isActiveSup?'bg-amber-400 text-slate-950':'bg-emerald-500 hover:bg-emerald-400 text-slate-950'}">${isActiveSup?'✓ 已設為助戰':'借用助戰'}</button></div>`;
+      if (!visited) {
+        row.querySelector('.btn-visit').addEventListener('click', () => {
+          save.visitedFriends = save.visitedFriends || {};
+          save.visitedFriends[fr.id] = true;
+          save.lmd += 1500; save.orundum += 40;
+          sfx.play('click'); persistSave(); renderFriendsModal(); renderLobby();
+          showGlobalToast(`訪問【${fr.name}】會客室成功！獲得 龍門幣 +1,500、合成玉 +40`);
+        });
+      }
+      row.querySelector('.btn-borrow').addEventListener('click', () => {
+        if (isActiveSup) { save.activeSupport = null; showGlobalToast('已取消借用好友助戰幹員。'); }
+        else { save.activeSupport = { friendId: fr.id, friendName: fr.name, opId: op.id }; showGlobalToast(`✦ 已借用【${fr.name}】的精二滿級【${op.name}】，下場戰鬥自動加入出戰欄！`); }
+        sfx.play('skill'); persistSave(); renderFriendsModal();
+      });
+      el.appendChild(row);
+    });
+  }
 
   // ==================== MISSIONS SYSTEM (見習任務送新手券 + 日常任務) ====================
   const NEWBIE_MISSIONS = [
@@ -3404,7 +3585,7 @@
             }
           }
         } else {
-          const canAir = op.def.antiAir || (op.skillActive > 0 && (op.def.skill.type === 'TRUESILVER' || op.def.skill.type === 'VOLCANO'));
+          const canAir = Boolean(op.def.antiAir) || (op.skillActive > 0 && ['irene','degenbrecher','wisadel'].includes(op.id));
           const cands = state.enemies.filter(e => e.hp > 0 && (!e.def.flying || canAir) && (e.blockedBy === op || inRange(e.gx, e.gy)));
           if (cands.length > 0) {
             cands.sort((a,b) => (op.def.antiAir && a.def.flying !== b.def.flying) ? (a.def.flying ? -1 : 1) : ((a.blockedBy === op) !== (b.blockedBy === op) ? (a.blockedBy === op ? -1 : 1) : b.progress - a.progress));
@@ -4039,6 +4220,39 @@
   }, 1000);
 
   document.getElementById('lobby-btn-gacha').addEventListener('click', () => { sfx.play('click'); switchView('GACHA'); });
+  document.getElementById('lobby-mail-btn').addEventListener('click', () => {
+    sfx.play('click'); renderMailModal();
+    const m = document.getElementById('mail-modal'); m.classList.remove('hidden'); m.classList.add('flex');
+  });
+  document.getElementById('mail-close').addEventListener('click', () => {
+    sfx.play('click'); const m = document.getElementById('mail-modal'); m.classList.add('hidden'); m.classList.remove('flex');
+  });
+  document.getElementById('btn-claim-all-mails').addEventListener('click', () => {
+    save.claimedMails = save.claimedMails || {};
+    let cnt = 0;
+    SYSTEM_MAILS.forEach(m => { if (!save.claimedMails[m.id]) { save.claimedMails[m.id] = true; m.give(); cnt++; } });
+    if (!cnt) { showGlobalToast('沒有未領取的郵件附件。'); return; }
+    sfx.play('ssr'); persistSave(); renderMailModal(); renderLobby();
+    showGlobalToast(`✉ 已一鍵領取 ${cnt} 封郵件的全部物資！`);
+  });
+  document.getElementById('lobby-friends-btn').addEventListener('click', () => {
+    sfx.play('click'); renderFriendsModal();
+    const m = document.getElementById('friends-modal'); m.classList.remove('hidden'); m.classList.add('flex');
+  });
+  document.getElementById('friends-close').addEventListener('click', () => {
+    sfx.play('click'); const m = document.getElementById('friends-modal'); m.classList.add('hidden'); m.classList.remove('flex');
+  });
+  document.getElementById('btn-add-friend').addEventListener('click', () => {
+    const inp = document.getElementById('add-friend-input');
+    const name = (inp.value || '').trim();
+    if (!name) { showGlobalToast('請輸入好友暱稱或博士 ID！'); return; }
+    save.customFriends = save.customFriends || [];
+    const pool6 = OPERATORS.filter(o => o.rarity === 6);
+    const pick = pool6[Math.floor(Math.random() * pool6.length)];
+    save.customFriends.push({ id:'FR#' + String(Math.floor(1000 + Math.random()*8999)), name, lv: 85 + Math.floor(Math.random()*35), supportOpId: pick.id, note:'新加入的羅德島戰友，歡迎借用助戰！' });
+    inp.value = ''; sfx.play('ssr'); persistSave(); renderFriendsModal();
+    showGlobalToast(`👥 已成功新增好友【${name}】（助戰：${pick.name}）！`);
+  });
   document.getElementById('lobby-btn-missions').addEventListener('click', () => {
     sfx.play('click'); renderMissionsModal();
     const mm = document.getElementById('missions-modal'); mm.classList.remove('hidden'); mm.classList.add('flex');
