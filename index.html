@@ -1854,8 +1854,8 @@
       grid:['..........','SGGGGGG...','..HH..G.HH','..HH..GGGE','..HH..HH..','..........'], paths:[[[0,1],[6,1],[6,3],[9,3]]],
       waves:[{t:2,type:'slug',path:0},{t:3,type:'slug',path:0},{t:4,type:'slug',path:0},{t:7.5,type:'drone',path:0},{t:9.5,type:'drone',path:0},{t:13,type:'soldier',path:0},{t:15,type:'swordsman',path:0},{t:19,type:'caster',path:0},{t:22,type:'heavy',path:0},{t:26,type:'drone',path:0},{t:28,type:'drone',path:0},{t:32,type:'swordsman',path:0},{t:35,type:'heavy',path:0}] },
     // ANNIHILATION (Orundum Farming!)
-    { id:'ANN-1', category:'annihilation', code:'殲滅-切城', name:'殲滅作戰 · 切爾諾伯格', subtitle:'【每週玉池】高強度多波次防禦戰，通關固定獲得 +1,800 合成玉（可直接抽卡）！', difficulty:'殲滅', sanityCost:25, initDp:22, deployLimit:10, maxLife:5, cols:11, rows:7,
-      rewards:{ lmd:3000, exp:5, orundum:1800, firstOp:1, firstOrundum:0 },
+    { id:'ANN-1', category:'annihilation', code:'殲滅-切城', name:'殲滅作戰 · 切爾諾伯格', subtitle:'【每週合成玉上限 1,800】單次通關獲得 +350 合成玉（達每週上限後下週一重置）。', difficulty:'殲滅', sanityCost:25, initDp:22, deployLimit:10, maxLife:5, cols:11, rows:7,
+      rewards:{ lmd:2500, exp:4, orundum:350, firstOp:1, firstOrundum:0 },
       grid:['...........','SGGGGGG....','..HH..G.HH.','..HH..GGGGE','..HH..G.HH.','SGGGGGG....','...........'], paths:[[[0,1],[6,1],[6,3],[10,3]],[[0,5],[6,5],[6,3],[10,3]]],
       waves:[{t:2,type:'slug',path:0},{t:3,type:'slug',path:1},{t:6,type:'soldier',path:0},{t:7.5,type:'soldier',path:1},{t:11,type:'drone',path:0},{t:12.5,type:'drone',path:1},{t:16,type:'swordsman',path:0},{t:17.5,type:'swordsman',path:1},{t:22,type:'heavy',path:0},{t:24,type:'caster',path:1},{t:28,type:'heavy',path:1},{t:30,type:'caster',path:0},{t:35,type:'drone',path:0},{t:36.5,type:'drone',path:1},{t:41,type:'swordsman',path:0},{t:42.5,type:'swordsman',path:1},{t:47,type:'heavy',path:0},{t:48.5,type:'heavy',path:1},{t:53,type:'caster',path:0},{t:54.5,type:'caster',path:1}] }
   ];
@@ -2023,6 +2023,8 @@
       newbieGot6: false,     // Guaranteed 6* within first 10 pulls on Newbie banner
       claimedMissions: {},   // Claimed newbie & daily mission IDs
       dailyMissionDate: '',
+      weeklyAnnKey: '',
+      weeklyAnnOrundum: 0,
       dailyBattleDone: false,
       dailyUpgradeDone: false,
       certs: 0,
@@ -2073,6 +2075,30 @@
   }
 
   const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
+  const WEEKLY_ANN_CAP = 1800;
+  function getWeekKey() {
+    const d = new Date();
+    const day = (d.getDay() + 6) % 7; // Mon=0..Sun=6
+    const mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - day);
+    return `${mon.getFullYear()}-${mon.getMonth()+1}-${mon.getDate()}`;
+  }
+  function getWeeklyAnnOrundum() {
+    const wk = getWeekKey();
+    if (save.weeklyAnnKey !== wk) { save.weeklyAnnKey = wk; save.weeklyAnnOrundum = 0; }
+    return save.weeklyAnnOrundum || 0;
+  }
+  function awardStageOrundum(st) {
+    if (!st.rewards.orundum) return 0;
+    if (st.category === 'annihilation') {
+      const used = getWeeklyAnnOrundum();
+      const gain = Math.min(st.rewards.orundum, Math.max(0, WEEKLY_ANN_CAP - used));
+      save.weeklyAnnOrundum = used + gain;
+      save.orundum += gain;
+      return gain;
+    }
+    save.orundum += st.rewards.orundum;
+    return st.rewards.orundum;
+  }
   const isOwned = id => Boolean(save.owned[id]);
   const getOwnedData = id => {
     if (state && state.view === 'BATTLE' && save.activeSupport && save.activeSupport.opId === id && !save.squad.includes(id)) {
@@ -2972,7 +2998,8 @@
     if (catHint) {
       if (state.activeStageTab === 'abyss') catHint.textContent = `☠ 深淵挑戰（最高紀錄：第 ${save.abyssBestFloor || 0} / 50 層）· 挑戰不消耗理智，每 5 層首領關首通送合成玉 +600、◆源石×1 與黃票×5！`;
       else if (state.activeStageTab === 'main') catHint.textContent = `${MAIN_CHAPTERS[state.activeChapter]?.name || ''} · 三星首通送 ◆至純源石 ×1（每關限領一次）`;
-      else catHint.textContent = '資源籌備與殲滅作戰可重複刷取龍門幣、作戰記錄與合成玉；三星通關後支援 PRTS 代理掃蕩！';
+      else if (state.activeStageTab === 'annihilation') catHint.textContent = `殲滅作戰 · 本週合成玉進度：${getWeeklyAnnOrundum().toLocaleString()} / ${WEEKLY_ANN_CAP.toLocaleString()}（單次 +350，每週一自動重置）`;
+      else catHint.textContent = '資源籌備可重複刷取龍門幣與作戰記錄；三星通關後支援 PRTS 代理掃蕩！';
     }
 
     const container = document.getElementById('stage-node-chain'); container.innerHTML = '';
@@ -3714,7 +3741,7 @@
       save.cleared[st.id] = Math.max(prevStars, stars);
       if (st.rewards.lmd) { save.lmd += st.rewards.lmd; rwParts.push(`+${st.rewards.lmd}幣`); }
       if (st.rewards.exp) { save.expRecords += st.rewards.exp; rwParts.push(`+${st.rewards.exp}經驗`); }
-      if (st.rewards.orundum) { save.orundum += st.rewards.orundum; rwParts.push(`+${st.rewards.orundum}玉`); }
+      if (st.rewards.orundum) { const og = awardStageOrundum(st); rwParts.push(og > 0 ? `+${og}玉` : '本週殲滅玉已滿'); }
       save.firstOpClaimed = save.firstOpClaimed || {};
       save.firstOrundumClaimed = save.firstOrundumClaimed || {};
       if (stars === 3 && st.rewards.firstOp && !save.firstOpClaimed[st.id]) {
@@ -4309,12 +4336,13 @@
   if (prtsAutoBtn) prtsAutoBtn.addEventListener('click', () => {
     const st = STAGES.find(s => s.id === state.selectedStageId);
     if (!st || (save.cleared[st.id] || 0) < 3) return;
+    if (st.category === 'annihilation' && getWeeklyAnnOrundum() >= WEEKLY_ANN_CAP) { showGlobalToast('本週殲滅合成玉已達上限 (1,800/1,800)，下週一重置！'); return; }
     if (save.sanity < st.sanityCost) { showGlobalToast(`理智不足（需 ${st.sanityCost}，可至採購中心以源石恢復）`); return; }
     save.sanity -= st.sanityCost;
     const parts = [];
     save.dailyBattleDone = true; save.squad.forEach(sid => { if (save.owned[sid]) save.owned[sid].trust = Math.min(200, (save.owned[sid].trust || 0) + 4); }); if (st.rewards.lmd) { save.lmd += st.rewards.lmd; parts.push(`+${st.rewards.lmd.toLocaleString()}龍門幣`); }
     if (st.rewards.exp) { save.expRecords += st.rewards.exp; parts.push(`+${st.rewards.exp}作戰記錄`); }
-    if (st.rewards.orundum) { save.orundum += st.rewards.orundum; parts.push(`+${st.rewards.orundum}合成玉`); }
+    if (st.rewards.orundum) { const og = awardStageOrundum(st); parts.push(og > 0 ? `+${og}合成玉 (${getWeeklyAnnOrundum()}/${WEEKLY_ANN_CAP})` : '本週殲滅玉已達 1,800 上限'); }
     sfx.play('victory'); persistSave(); renderLobby(); renderStageMap();
     showGlobalToast(`⚡ PRTS 代理作戰完成 (${st.code})：${parts.join(' / ')}`);
   });
