@@ -543,14 +543,16 @@
     </header>
 
     <!-- Terminal Category Tabs -->
-    <div class="w-full px-4 sm:px-6 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center gap-2 shrink-0">
-      <button data-stab="main" class="s-tab-btn px-3.5 py-1.5 text-xs font-black bg-sky-500 text-slate-950 ak-chamfer-sm">主線主題曲 (逐關解鎖)</button>
-      <button data-stab="supplies" class="s-tab-btn px-3.5 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 hover:text-white ak-chamfer-sm">資源籌備 (CE-5 龍門幣 / LS-5 經驗)</button>
-      <button data-stab="annihilation" class="s-tab-btn px-3.5 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 hover:text-white ak-chamfer-sm">殲滅作戰 (刷合成玉)</button>
+    <div class="w-full px-4 sm:px-6 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center gap-2 overflow-x-auto scrollbar-hide shrink-0">
+      <button data-stab="main" class="s-tab-btn px-3.5 py-1.5 text-xs font-black bg-sky-500 text-slate-950 ak-chamfer-sm shrink-0">主線主題曲 (0~14章 · 195關)</button>
+      <button data-stab="abyss" class="s-tab-btn px-3.5 py-1.5 text-xs font-bold bg-slate-800 text-purple-300 hover:text-white ak-chamfer-sm shrink-0">☠ 深淵挑戰 (B1~B50 · 0理智)</button>
+      <button data-stab="supplies" class="s-tab-btn px-3.5 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 hover:text-white ak-chamfer-sm shrink-0">資源籌備 (CE-5 / LS-5)</button>
+      <button data-stab="annihilation" class="s-tab-btn px-3.5 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 hover:text-white ak-chamfer-sm shrink-0">殲滅作戰 (刷合成玉)</button>
     </div>
+    <div id="chapter-bar" class="w-full px-4 sm:px-6 py-1.5 bg-slate-950/90 border-b border-slate-800 flex items-center gap-1.5 overflow-x-auto scrollbar-hide shrink-0"></div>
 
     <div class="flex-1 flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden">
-      <div class="flex-1 p-5 sm:p-8 flex flex-col justify-center items-center overflow-y-auto">
+      <div class="flex-1 p-4 sm:p-6 pb-20 flex flex-col items-center overflow-y-auto">
         <div class="w-full max-w-3xl space-y-4">
           <div id="stage-cat-hint" class="text-xs text-slate-400">通關主線三星首通可獲得 ◆至純源石 ×1 與大量合成玉</div>
           <div id="stage-node-chain" class="relative grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
@@ -947,7 +949,7 @@
   };
   const battleBgImgs = {};
   Object.entries(BATTLE_BG_URLS).forEach(([k, u]) => { const im = new Image(); im.src = u; battleBgImgs[k] = im; });
-  function getStageTheme(stageId) {
+  function getStageTheme(stageId) { const stObj = STAGES.find(s => s.id === stageId); if (stObj && stObj.theme) return stObj.theme;
     if (stageId === '6-16') return 'snow';
     if (['4-4','5-10','H5-1','CE-5'].includes(stageId)) return 'lungmen';
     if (['1-7','7-18','LS-5','ANN-1'].includes(stageId)) return 'mine';
@@ -1061,8 +1063,9 @@
         skeleton.updateWorldTransform();
         const offset = new spine.Vector2(), size = new spine.Vector2();
         skeleton.getBounds(offset, size, []);
-        const maxDim = Math.max(size.x || 260, size.y || 260, 160);
-        const normScale = 185 / maxDim;
+        const rawDim = Math.max(size.x || 320, size.y || 320, 200);
+        // Clamp huge weapon/FX bounding boxes so Spine chibis stay crisp & full-sized!
+        const normScale = Math.max(0.38, Math.min(0.56, 215 / Math.min(rawDim, 520)));
 
         const animNames = (skeletonData.animations || []).map(a => a.name);
         const pick = (prefs) => prefs.find(p => animNames.some(n => n.toLowerCase() === p.toLowerCase()))
@@ -1154,7 +1157,7 @@
         m.skeleton.scaleX = m.scale;
         m.skeleton.scaleY = m.scale;
         m.skeleton.x = 0;
-        m.skeleton.y = -95;
+        m.skeleton.y = -112;
         m.skeleton.updateWorldTransform();
 
         gl.viewport(0, 0, glCanvas.width, glCanvas.height);
@@ -1173,7 +1176,7 @@
         ctx2d.save();
         if (hitFlash > 0) ctx2d.filter = 'brightness(2.0)';
         else if (dir === 'UP') ctx2d.filter = 'brightness(0.86)';
-        ctx2d.drawImage(glCanvas, -size * 0.62, -size * 0.96, size * 1.24, size * 1.24);
+        ctx2d.drawImage(glCanvas, -size * 0.78, -size * 1.18, size * 1.56, size * 1.56);
         ctx2d.filter = 'none';
         ctx2d.restore();
         return true;
@@ -1630,6 +1633,40 @@
       skinAvatar: cid ? `https://cdn.jsdelivr.net/gh/yuanyan3060/ArknightsGameResource@main/avatar/${cid}_2.png` : localArt
     };
   });
+
+  // Authentic Arknights signature skill overrides (accurate mechanics & descriptions!)
+  const SKILL_OVERRIDES = {
+    wisadel:   { desc:'「爆裂黎明」：大幅提升攻擊力並召喚祖宗砲擊，大範圍高爆濺射＋對空打擊＋附帶眩暈！', trueDmg:false, stunOnHit:0.6 },
+    logos:     { desc:'「歿世語」：攻擊範圍擴大，同時對最多 4 名敵人降下高額法術咒言並附加減速！', trueDmg:false },
+    pepe:      { desc:'「時光之錘」：攻擊力劇增，每次重錘造成大範圍濺射物理傷害並短暫眩暈目標！', stunOnHit:0.8 },
+    shu:       { desc:'「化被草木」：展開播種領域，大幅治療周圍友軍並對範圍內敵人施加強力減速！', healAura:true },
+    mlynar:    { desc:'「未照耀的榮光」：展開超大範圍耀金劍光，同時斬擊 5 名敵人並附帶真實傷害！', trueDmg:true },
+    surtr:     { desc:'「黃昏」：萊萬汀火力全開！射程擴大、攻擊力劇增，同時對多名敵人造成毀滅性法術傷害！' },
+    kaltsit:   { desc:'「指令：熔毀」：驅動 Mon3tr 爆發，範圍內發動高額真實傷害打擊並強化治療！', trueDmg:true },
+    nearl_r:   { desc:'「耀陽頷首」：卡西米爾耀陽降臨，造成無視防禦與法抗的真實傷害並擊暈周圍敵人！', trueDmg:true, stunOnHit:0.7 },
+    amiya:     { desc:'「奇美拉」：爆發精神力，攻擊轉為無視防禦的真實傷害並大幅提升射程！', trueDmg:true },
+    goldenglow:{ desc:'「電流激盪」：停止普通攻擊，浮游單元全地圖鎖定敵人進行高頻法術追擊並減速！', globalRange:true },
+    eyja_alt:  { desc:'「火山迴響」：治療範圍擴大至全場，同時為多名受傷友軍進行持續強效治療！', globalRange:true },
+    skadi_alt: { desc:'「潮汐悲歌」：持續為周圍所有友軍大幅回血並強化攻防光環！' },
+    myrtle:    { desc:'「支援指令β」：高舉戰旗！立即回復 14 點部署費用！', dpGain:14 },
+    elysium:   { desc:'「聆聽」：通訊支援啟動！立即回復 16 點部署費用並短暫減速周圍敵人！', dpGain:16 },
+    wanqing:   { desc:'「大農之旗」：大荒城戰旗高舉！立即回復 15 點部署費用並微幅治療周圍友軍！', dpGain:15 },
+    texas_alt: { desc:'「劍雨·改」：落地瞬間降下密集法術劍雨，對周圍敵人造成法傷並眩暈 2.5 秒！', stunOnHit:2.5 },
+    yato_alt:  { desc:'「空中迴旋亂舞」：對前方大範圍敵人發動高速多段連斬，清場爆發極強！' },
+    degenbrecher:{ desc:'「歸於寧靜」：黑騎士連續拔刀斬擊，對範圍內多名敵人造成毀滅性物理爆發！' },
+    chongyue:  { desc:'「我無」：形意拳宗師連擊！高頻打出大範圍拳勁衝擊波！' }
+  };
+  OPERATORS.forEach(op => {
+    const ov = SKILL_OVERRIDES[op.id];
+    if (ov && op.skill) {
+      if (ov.desc) op.skill.desc = ov.desc;
+      if (ov.trueDmg) op.skill.trueDmg = true;
+      if (ov.stunOnHit) op.skill.stunOnHit = ov.stunOnHit;
+      if (ov.globalRange) op.skill.globalRange = true;
+      if (ov.dpGain) op.skill.dpGain = ov.dpGain;
+    }
+  });
+
   const OP_MAP = Object.fromEntries(OPERATORS.map(o => [o.id, o]));
 
   const chibiSprites = {};
@@ -1698,7 +1735,12 @@
     caster:{ name:'整合運動術師', maxHp:2900, atk:370, def:120, res:45, speed:0.72, atkInterval:2.1, dmgType:'ARTS', flying:false, ranged:true, range:2.3, color:'#a855f7', radius:0.29, sprite:'soldier', scale:1.04, filter:'hue-rotate(245deg) saturate(1.4)' },
     boss:{ name:'碎骨', blockWeight:2, maxHp:22000, atk:760, def:480, res:30, speed:0.48, atkInterval:2.2, dmgType:'PHYS', flying:false, ranged:true, range:2.4, aoe:true, boss:true, color:'#dc2626', radius:0.42, sprite:'boss', scale:1.34, filter:'' },
     frostnova:{ name:'霜星', blockWeight:2, maxHp:26500, atk:680, def:380, res:55, speed:0.46, atkInterval:2.0, dmgType:'ARTS', flying:false, ranged:true, range:2.6, aoe:true, boss:true, color:'#38bdf8', radius:0.42, sprite:'boss', scale:1.34, filter:'hue-rotate(185deg) brightness(1.15)' },
-    patriot:{ name:'愛國者', blockWeight:3, maxHp:38000, atk:950, def:1100, res:25, speed:0.36, atkInterval:2.5, dmgType:'PHYS', flying:false, ranged:false, boss:true, color:'#f59e0b', radius:0.45, sprite:'heavy', scale:1.42, filter:'hue-rotate(22deg) contrast(1.2)' }
+    patriot:{ name:'愛國者', blockWeight:3, maxHp:38000, atk:950, def:1100, res:25, speed:0.36, atkInterval:2.5, dmgType:'PHYS', flying:false, ranged:false, boss:true, color:'#f59e0b', radius:0.45, sprite:'heavy', scale:1.42, filter:'hue-rotate(22deg) contrast(1.2)' },
+    faust:{ name:'浮士德', blockWeight:2, maxHp:24000, atk:820, def:350, res:35, speed:0.52, atkInterval:2.3, dmgType:'PHYS', flying:false, ranged:true, range:3.2, boss:true, color:'#a855f7', radius:0.40, sprite:'boss', scale:1.28, filter:'hue-rotate(265deg)' },
+    talulah:{ name:'不死的黑蛇 · 塔露拉', blockWeight:3, maxHp:48000, atk:1080, def:680, res:50, speed:0.42, atkInterval:2.1, dmgType:'ARTS', flying:false, ranged:true, range:2.8, aoe:true, boss:true, color:'#ef4444', radius:0.46, sprite:'boss', scale:1.45, filter:'hue-rotate(-10deg) saturate(1.5)' },
+    manfred:{ name:'曼弗雷德', blockWeight:2, maxHp:42000, atk:980, def:740, res:45, speed:0.48, atkInterval:1.9, dmgType:'PHYS', flying:false, ranged:true, range:2.4, boss:true, color:'#dc2626', radius:0.44, sprite:'heavy', scale:1.38, filter:'hue-rotate(330deg) contrast(1.2)' },
+    steamknight:{ name:'「最後的蒸汽騎士」', blockWeight:3, maxHp:56000, atk:1250, def:1350, res:35, speed:0.35, atkInterval:2.4, dmgType:'PHYS', flying:false, ranged:false, boss:true, color:'#fbbf24', radius:0.48, sprite:'heavy', scale:1.48, filter:'hue-rotate(42deg) brightness(1.15)' },
+    theresis:{ name:'薩卡茲攝政王 · 特雷西斯', blockWeight:3, maxHp:68000, atk:1420, def:1150, res:55, speed:0.40, atkInterval:2.0, dmgType:'ARTS', flying:false, ranged:true, range:2.6, aoe:true, boss:true, color:'#f43f5e', radius:0.48, sprite:'boss', scale:1.50, filter:'hue-rotate(310deg) contrast(1.3)' }
   };
 
   const STAGES = [
@@ -1751,6 +1793,130 @@
       waves:[{t:2,type:'slug',path:0},{t:3,type:'slug',path:1},{t:6,type:'soldier',path:0},{t:7.5,type:'soldier',path:1},{t:11,type:'drone',path:0},{t:12.5,type:'drone',path:1},{t:16,type:'swordsman',path:0},{t:17.5,type:'swordsman',path:1},{t:22,type:'heavy',path:0},{t:24,type:'caster',path:1},{t:28,type:'heavy',path:1},{t:30,type:'caster',path:0},{t:35,type:'drone',path:0},{t:36.5,type:'drone',path:1},{t:41,type:'swordsman',path:0},{t:42.5,type:'swordsman',path:1},{t:47,type:'heavy',path:0},{t:48.5,type:'heavy',path:1},{t:53,type:'caster',path:0},{t:54.5,type:'caster',path:1}] }
   ];
 
+
+  // ==================== 15 MAIN CHAPTERS (195 STAGES) + 50-FLOOR ABYSSAL TRIALS (總計 248 關!) ====================
+  const MAIN_CHAPTERS = [
+    { ch:0,  name:'第0章 · 黑暗時代（上）', theme:'ruins',   count:11, boss:'boss',        baseScale:0.75 },
+    { ch:1,  name:'第1章 · 黑暗時代（下）', theme:'mine',    count:12, boss:'boss',        baseScale:0.88 },
+    { ch:2,  name:'第2章 · 異卵同生',       theme:'lungmen', count:10, boss:'boss',        baseScale:1.00 },
+    { ch:3,  name:'第3章 · 二次呼吸',       theme:'ruins',   count:10, boss:'boss',        baseScale:1.12 },
+    { ch:4,  name:'第4章 · 急性衰竭',       theme:'lungmen', count:10, boss:'frostnova',   baseScale:1.25 },
+    { ch:5,  name:'第5章 · 靶向藥物',       theme:'lungmen', count:11, boss:'faust',       baseScale:1.38 },
+    { ch:6,  name:'第6章 · 局部壞死',       theme:'snow',    count:16, boss:'frostnova',   baseScale:1.52 },
+    { ch:7,  name:'第7章 · 苦難搖籃',       theme:'mine',    count:18, boss:'patriot',     baseScale:1.68 },
+    { ch:8,  name:'第8章 · 怒號光明',       theme:'ruins',   count:12, boss:'talulah',     baseScale:1.85 },
+    { ch:9,  name:'第9章 · 風暴瞭望',       theme:'ruins',   count:14, boss:'faust',       baseScale:2.02 },
+    { ch:10, name:'第10章 · 破碎日冕',      theme:'mine',    count:14, boss:'manfred',     baseScale:2.20 },
+    { ch:11, name:'第11章 · 淬火塵霾',      theme:'lungmen', count:14, boss:'steamknight', baseScale:2.40 },
+    { ch:12, name:'第12章 · 驚霆無聲',      theme:'lungmen', count:14, boss:'manfred',     baseScale:2.62 },
+    { ch:13, name:'第13章 · 惡兆湍流',      theme:'mine',    count:14, boss:'talulah',     baseScale:2.85 },
+    { ch:14, name:'第14章 · 慈悲燈塔',      theme:'snow',    count:15, boss:'theresis',    baseScale:3.10 }
+  ];
+
+  const MAP_TEMPLATES = [
+    { cols:10, rows:6, grid:['..........','..HH..HH..','SGGGGGGGGE','..HH..HH..','..GGGGGG..','..........'], paths:[[[0,2],[9,2]]] },
+    { cols:11, rows:7, grid:['...........','SGGGGGG....','..HH..G.HH.','..HH..GGGGE','..HH..G.HH.','SGGGGGG....','...........'], paths:[[[0,1],[6,1],[6,3],[10,3]],[[0,5],[6,5],[6,3],[10,3]]] },
+    { cols:11, rows:7, grid:['...........','SGGGGGGGG..','.HH.HH..G..','..GGGGGGG..','..G.HH.HH..','..GGGGGGGGE','...........'], paths:[[[0,1],[8,1],[8,3],[2,3],[2,5],[10,5]]] },
+    { cols:11, rows:7, grid:['...........','SGGGGGGG...','..HH..HG.HH','..GGGGGGGGG','..HH..HG.HH','SGGGGGGG..E','...........'], paths:[[[0,1],[7,1],[7,3],[10,3],[10,5]],[[0,5],[7,5],[7,3],[10,3],[10,5]]] },
+    { cols:12, rows:7, grid:['............','SGGGGGGGGGG.','..HH..HH..G.','..HH..HH..GE','SGGGGGGGGGG.','..HH..HH....','............'], paths:[[[0,1],[10,1],[10,3],[11,3]],[[0,4],[10,4],[10,3],[11,3]]] },
+    { cols:12, rows:7, grid:['............','SGGGGGGGG...','..HH..HHG.HH','..GGGGGGGGGE','..HH..HHG.HH','SGGGGGGGG...','............'], paths:[[[0,1],[8,1],[8,3],[11,3]],[[0,5],[8,5],[8,3],[11,3]]] },
+    { cols:12, rows:7, grid:['............','SGGGGGGGGGG.','.HH..HH..HG.','.GGGGGGGGGG.','.G..HH..HHG.','.GGGGGGGGGG.','..........GE'], paths:[[[0,1],[10,1],[10,3],[1,3],[1,5],[10,5],[10,6],[11,6]]] },
+    { cols:12, rows:7, grid:['............','SGGGGGGGGGG.','..HH..HH..G.','..GGGGGGGGG.','SGG.HH.HH.GE','....HH.HH...','............'], paths:[[[0,1],[10,1],[10,4],[11,4]],[[0,4],[2,4],[2,3],[10,3],[10,4],[11,4]]] }
+  ];
+
+  function buildProceduralWaves(seed, count, pathCount, tier, bossType, doubleBoss = false) {
+    const waves = [];
+    const pool = tier < 2 ? ['slug','soldier','drone','swordsman']
+      : tier < 5 ? ['slug','soldier','swordsman','drone','heavy','caster']
+      : ['swordsman','drone','heavy','caster','heavy','swordsman'];
+    let t = 2.0;
+    for (let i = 0; i < count; i++) {
+      const type = pool[(seed * 7 + i * 3) % pool.length];
+      waves.push({ t: Number(t.toFixed(1)), type, path: i % pathCount });
+      t += Math.max(1.3, 2.7 - Math.min(1.1, tier * 0.08));
+    }
+    if (bossType) {
+      waves.push({ t: Number((t * 0.55).toFixed(1)), type: bossType, path: 0 });
+      if (doubleBoss) waves.push({ t: Number((t * 0.72).toFixed(1)), type: bossType === 'theresis' ? 'patriot' : 'frostnova', path: pathCount > 1 ? 1 : 0 });
+      waves.sort((a, b) => a.t - b.t);
+    }
+    return waves;
+  }
+
+  (() => {
+    const existingById = Object.fromEntries(STAGES.map(s => [s.id, s]));
+    const fullMain = [];
+    MAIN_CHAPTERS.forEach((chInfo) => {
+      for (let num = 1; num <= chInfo.count; num++) {
+        const id = `${chInfo.ch}-${num}`;
+        const isBossStage = (num === chInfo.count);
+        if (existingById[id]) {
+          existingById[id].chapter = chInfo.ch;
+          existingById[id].theme = chInfo.theme;
+          existingById[id].enemyScale = chInfo.baseScale;
+          fullMain.push(existingById[id]);
+        } else {
+          const tpl = MAP_TEMPLATES[(chInfo.ch * 5 + num) % MAP_TEMPLATES.length];
+          const waveCount = 14 + Math.min(16, Math.floor(chInfo.ch * 0.9 + num * 0.4));
+          const bossType = isBossStage ? chInfo.boss : null;
+          const diffLabel = isBossStage ? '章節BOSS' : chInfo.ch >= 10 ? '極難' : chInfo.ch >= 6 ? '高難' : chInfo.ch >= 3 ? '困難' : '常規';
+          fullMain.push({
+            id, category:'main', chapter: chInfo.ch, theme: chInfo.theme, code: id,
+            name: isBossStage ? `${chInfo.name.split('·')[1].trim()} · 決戰` : `${chInfo.name.split('·')[1].trim()} · 戰區 ${num}`,
+            subtitle: isBossStage
+              ? `第 ${chInfo.ch} 章最終決戰！首領【${ENEMIES[bossType].name}】親臨戰場，三星首通獎勵 ◆至純源石 ×1（僅限首次）。`
+              : `第 ${chInfo.ch} 章主線作戰（第 ${num}/${chInfo.count} 關），三星首通獎勵 ◆至純源石 ×1（僅限首次）。`,
+            difficulty: diffLabel,
+            sanityCost: Math.min(21, 9 + Math.floor(chInfo.ch * 0.8) + (isBossStage ? 2 : 0)),
+            initDp: 16 + Math.min(10, Math.floor(chInfo.ch * 0.6)),
+            deployLimit: chInfo.ch >= 8 ? 10 : chInfo.ch >= 5 ? 9 : 8,
+            maxLife: 3, cols: tpl.cols, rows: tpl.rows, grid: tpl.grid, paths: tpl.paths,
+            enemyScale: Number((chInfo.baseScale * (0.92 + (num / chInfo.count) * 0.16)).toFixed(2)),
+            rewards: { lmd: 2400 + chInfo.ch * 350 + num * 80, exp: 5 + Math.floor(chInfo.ch * 0.8), orundum: 0, firstOp: 1, firstOrundum: isBossStage ? 600 : 120 },
+            waves: buildProceduralWaves(chInfo.ch * 31 + num, waveCount, tpl.paths.length, chInfo.ch, bossType, false)
+          });
+        }
+      }
+    });
+
+    // Dedicated 50-Floor Abyssal Trials (深淵挑戰 B1 ~ B50 — 危機合約/絕境詞條模式!)
+    const ABYSS_MODS = [
+      { tag:'常規深淵', atkMult:1.0, defMult:1.0, spdMult:1.0, desc:'深淵基礎環境，檢驗羅德島核心陣容。' },
+      { tag:'源石風暴', atkMult:1.25, defMult:1.0, spdMult:1.0, desc:'【環境詞條】全體敵軍攻擊力 +25%，請注意醫療覆蓋！' },
+      { tag:'重甲壁壘', atkMult:1.0, defMult:1.35, spdMult:1.0, desc:'【環境詞條】全體敵軍防禦力 +35%，務必攜帶術師或真傷幹員！' },
+      { tag:'極速突襲', atkMult:1.15, defMult:1.0, spdMult:1.22, desc:'【環境詞條】全體敵軍移速 +22%，需搭配減速輔助與強阻擋！' },
+      { tag:'終焉雙王', atkMult:1.25, defMult:1.20, spdMult:1.12, desc:'【高危詞條】雙重首領同場壓境！敵軍全屬性大幅強化！' }
+    ];
+    const ABYSS_BOSSES = ['boss','frostnova','patriot','faust','talulah','manfred','steamknight','theresis'];
+    const abyssStages = [];
+    for (let fl = 1; fl <= 50; fl++) {
+      const tpl = MAP_TEMPLATES[(fl * 3 + 1) % MAP_TEMPLATES.length];
+      const isBossFl = (fl % 5 === 0);
+      const doubleBoss = (fl >= 30 && fl % 10 === 0);
+      const mod = doubleBoss ? ABYSS_MODS[4] : ABYSS_MODS[Math.floor((fl - 1) / 5) % 4];
+      const bossType = isBossFl ? ABYSS_BOSSES[(Math.floor(fl / 5) - 1) % ABYSS_BOSSES.length] : null;
+      const themes = ['mine','snow','lungmen','ruins'];
+      abyssStages.push({
+        id: `ABYSS-${fl}`, category:'abyss', floor: fl, theme: themes[fl % themes.length],
+        code: `深淵 B${fl}`,
+        name: isBossFl ? `深淵第 ${fl} 層 · ${ENEMIES[bossType].name}` : `深淵第 ${fl} 層 · ${mod.tag}`,
+        subtitle: `${mod.desc} 首通獎勵（僅限一次）：合成玉 +${isBossFl ? 600 : 180}${isBossFl ? ' / ◆源石×1 / 黃票×5' : ''}。`,
+        difficulty: fl >= 35 ? '絕境' : fl >= 20 ? '極難' : fl >= 10 ? '高難' : '深淵',
+        sanityCost: 0, // Abyss costs 0 Sanity to challenge freely!
+        initDp: 22, deployLimit: fl >= 20 ? 10 : 9, maxLife: 3,
+        cols: tpl.cols, rows: tpl.rows, grid: tpl.grid, paths: tpl.paths,
+        enemyScale: Number((1.0 + fl * 0.09).toFixed(2)),
+        abyssMod: mod,
+        rewards: { lmd: 3500 + fl * 200, exp: 6 + Math.floor(fl / 3), orundum: 0, firstOp: isBossFl ? 1 : 0, firstOrundum: isBossFl ? 600 : 180, firstCerts: isBossFl ? 5 : 1 },
+        waves: buildProceduralWaves(500 + fl * 17, 16 + Math.min(18, Math.floor(fl * 0.4)), tpl.paths.length, 4 + Math.floor(fl / 3), bossType, doubleBoss)
+      });
+    }
+
+    const nonMain = STAGES.filter(s => s.category !== 'main');
+    STAGES.length = 0;
+    STAGES.push(...fullMain, ...abyssStages, ...nonMain);
+  })();
+
   // ==================== SAVE STATE ====================
   const SAVE_KEY = 'ak_rhodes_account_permanent';
   const LEGACY_KEYS = ['ak_rhodes_save_v5_refined', 'ak_rhodes_save_v4_58ops', 'ak_rhodes_save_v3', 'ak_rhodes_save_v2'];
@@ -1763,6 +1929,9 @@
       docName: 'DR. 博士',
       updatedAt: Date.now(),
       cleared: {},
+      firstOpClaimed: {},
+      firstOrundumClaimed: {},
+      abyssBestFloor: 0,
       assistantId: 'fang',
       squad: [...STARTER_IDS],
       owned,
@@ -1816,6 +1985,9 @@
       const parsed = { ...defaultSave(), ...JSON.parse(raw) };
       if (!parsed.owned || Object.keys(parsed.owned).length === 0) parsed.owned = defaultSave().owned;
       if (!Array.isArray(parsed.squad) || parsed.squad.length === 0) parsed.squad = Object.keys(parsed.owned).slice(0, 6);
+      parsed.firstOpClaimed = parsed.firstOpClaimed || {};
+      parsed.firstOrundumClaimed = parsed.firstOrundumClaimed || {};
+      Object.entries(parsed.cleared || {}).forEach(([sid, stv]) => { if (stv >= 3) parsed.firstOpClaimed[sid] = true; if (stv >= 1) parsed.firstOrundumClaimed[sid] = true; });
       return parsed;
     } catch { return defaultSave(); }
   }
@@ -1841,10 +2013,13 @@
     };
   }
   function isStageUnlocked(st) {
+    if (st.category === 'abyss') {
+      return st.floor <= 1 || (save.cleared[`ABYSS-${st.floor - 1}`] || 0) > 0;
+    }
     if (st.category !== 'main') return true;
     const mains = STAGES.filter(s => s.category === 'main');
     const idx = mains.indexOf(st);
-    return idx <= 0 || (save.cleared[mains[idx - 1].id] || 0) > 0;
+    return idx <= 0 || (save.cleared[mains[idx - 1].id] || 0) > 0 || (save.cleared[st.id] || 0) > 0;
   }
 
   // ==================== RUNTIME STATE ====================
@@ -2551,8 +2726,32 @@
     document.getElementById('stage-progress-badge').textContent = `主線進度：${mains.filter(s => save.cleared[s.id] > 0).length} / ${mains.length}`;
     document.querySelectorAll('.s-tab-btn').forEach(b => b.className = b.dataset.stab === state.activeStageTab ? 's-tab-btn px-3.5 py-1.5 text-xs font-black bg-sky-500 text-slate-950 ak-chamfer-sm' : 's-tab-btn px-3.5 py-1.5 text-xs font-bold bg-slate-800 text-slate-300 ak-chamfer-sm');
 
-    const list = STAGES.filter(s => s.category === state.activeStageTab);
+    if (typeof state.activeChapter !== 'number') state.activeChapter = 0;
+    const chBar = document.getElementById('chapter-bar');
+    if (chBar) {
+      chBar.classList.toggle('hidden', state.activeStageTab !== 'main');
+      if (state.activeStageTab === 'main') {
+        chBar.innerHTML = '';
+        MAIN_CHAPTERS.forEach(ch => {
+          const btn = document.createElement('button');
+          const act = state.activeChapter === ch.ch;
+          btn.className = `px-2.5 py-1 text-[11px] font-bold ak-chamfer-sm shrink-0 ${act ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300 hover:text-white'}`;
+          btn.textContent = `第${ch.ch}章`;
+          btn.addEventListener('click', () => { sfx.play('click'); state.activeChapter = ch.ch; renderStageMap(); });
+          chBar.appendChild(btn);
+        });
+      }
+    }
+    const list = state.activeStageTab === 'main'
+      ? STAGES.filter(s => s.category === 'main' && s.chapter === state.activeChapter)
+      : STAGES.filter(s => s.category === state.activeStageTab);
     if (!list.some(s => s.id === state.selectedStageId)) state.selectedStageId = list[0].id;
+    const catHint = document.getElementById('stage-cat-hint');
+    if (catHint) {
+      if (state.activeStageTab === 'abyss') catHint.textContent = `☠ 深淵挑戰（最高紀錄：第 ${save.abyssBestFloor || 0} / 50 層）· 挑戰不消耗理智，每 5 層首領關首通送合成玉 +600、◆源石×1 與黃票×5！`;
+      else if (state.activeStageTab === 'main') catHint.textContent = `${MAIN_CHAPTERS[state.activeChapter]?.name || ''} · 三星首通送 ◆至純源石 ×1（每關限領一次）`;
+      else catHint.textContent = '資源籌備與殲滅作戰可重複刷取龍門幣、作戰記錄與合成玉；三星通關後支援 PRTS 代理掃蕩！';
+    }
 
     const container = document.getElementById('stage-node-chain'); container.innerHTML = '';
     list.forEach(st => {
@@ -2580,7 +2779,7 @@
     if (st.rewards.lmd) rw.push(`<span class="px-2 py-0.5 bg-sky-500/15 border border-sky-500/40 text-sky-300">+${st.rewards.lmd.toLocaleString()}龍門幣</span>`);
     if (st.rewards.exp) rw.push(`<span class="px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/40 text-emerald-300">+${st.rewards.exp}作戰記錄</span>`);
     if (st.rewards.orundum) rw.push(`<span class="px-2 py-0.5 bg-rose-500/15 border border-rose-500/40 text-rose-300">+${st.rewards.orundum}合成玉</span>`);
-    if (st.rewards.firstOp && !(save.cleared[st.id] >= 3)) rw.push(`<span class="px-2 py-0.5 bg-amber-500/20 border border-amber-400 text-amber-300">三星首通 ◆源石×${st.rewards.firstOp}</span>`);
+    if (st.rewards.firstOp && !save.firstOpClaimed?.[st.id]) rw.push(`<span class="px-2 py-0.5 bg-amber-500/20 border border-amber-400 text-amber-300">三星首通 ◆源石×${st.rewards.firstOp}</span>`);
     document.getElementById('brief-rewards').innerHTML = rw.join('');
     document.getElementById('brief-lock-notice').classList.toggle('hidden', unlocked);
     if (!unlocked) document.getElementById('brief-lock-notice').textContent = '🔒 需先通關前置主線關卡解鎖';
@@ -2985,7 +3184,7 @@
     state.effects.push({ type:'RING', x:c.x, y:c.y, maxR:layout.tileSize*2.1, color:'#f59e0b', life:0.45, maxLife:0.45 });
     state.floatingTexts.push({ x:c.x, y:c.y-24, text:sk.name+'!', color:'#fbbf24', size:15, life:0.75, maxLife:0.75 });
     if (sk.type === 'INSTANT_SWORD_RAIN') {
-      state.dp = Math.min(99, state.dp + 12);
+      state.dp = Math.min(99, state.dp + (op.def.skill.dpGain || 12));
       state.floatingTexts.push({ x:c.x, y:c.y-42, text:'+12 COST', color:'#38bdf8', size:13, life:0.85, maxLife:0.85 });
       for (const e of state.enemies) {
         if (Math.hypot(e.gx-(op.col+0.5), e.gy-(op.row+0.5)) <= 2.5) {
@@ -3047,7 +3246,7 @@
     }
     return iv;
   }
-  function dealDamageToEnemy(e, rawAtk, dmgType) {
+  function dealDamageToEnemy(e, rawAtk, dmgType) { if (dmgType === 'TRUE') { const dmg = Math.max(1, Math.round(rawAtk)); e.hp -= dmg; e.hitFlash = 0.14; state.floatingTexts.push({ x: layout.offsetX + e.gx * layout.tileSize, y: layout.offsetY + e.gy * layout.tileSize - 18, text: `-${dmg}`, color: '#f8fafc', life: 0.65 }); return; }
     const dmg = dmgType === 'PHYS' ? Math.max(rawAtk * 0.05, rawAtk - e.def.def) : Math.max(rawAtk * 0.05, rawAtk * (1 - e.def.res / 100));
     e.hp -= dmg; e.hitFlash = 0.14;
     state.floatingTexts.push({ x: layout.offsetX + e.gx * layout.tileSize, y: layout.offsetY + e.gy * layout.tileSize - 16, text: `${Math.round(dmg)}`, color: (dmgType === 'ARTS' || dmgType === 'INCANTATION') ? '#c084fc' : '#fb923c', size: 12, life: 0.7, maxLife: 0.7 });
@@ -3067,7 +3266,9 @@
     for (const w of state.spawnQueue) {
       if (!w.spawned && state.time >= w.t) {
         w.spawned = true; const def = ENEMIES[w.type], wps = state.stage.paths[w.path];
-        state.enemies.push({ uid:state.nextUid++, type:w.type, def, waypoints:wps, wpIndex:1, gx:wps[0][0]+0.5, gy:wps[0][1]+0.5, hp:def.maxHp, blockedBy:null, atkTimer:0.4, stunTimer:0, slowTimer:0, hitFlash:0, progress:0 });
+        const sc = state.stage.enemyScale || 1.0, am = state.stage.abyssMod || { atkMult:1, defMult:1, spdMult:1 };
+        const eDef = { ...def, maxHp: Math.round(def.maxHp * sc), atk: Math.round(def.atk * sc * am.atkMult), def: Math.round(def.def * am.defMult), speed: def.speed * am.spdMult };
+        state.enemies.push({ uid:state.nextUid++, type:w.type, def:eDef, waypoints:wps, wpIndex:1, gx:wps[0][0]+0.5, gy:wps[0][1]+0.5, hp:eDef.maxHp, blockedBy:null, atkTimer:0.4, stunTimer:0, slowTimer:0, hitFlash:0, progress:0 });
         if (def.boss) { document.getElementById('boss-banner-name').textContent = `${def.name} 侵入戰場`; bossBanner.classList.remove('hidden'); bossBanner.firstElementChild.classList.remove('animate-boss-banner'); void bossBanner.offsetWidth; bossBanner.firstElementChild.classList.add('animate-boss-banner'); sfx.play('leak'); }
       }
     }
@@ -3078,7 +3279,7 @@
       op.atkTimer -= dt;
       if (op.atkTimer <= 0) {
         const rangeTiles = getAttackTiles(op.def, op.col, op.row, op.dir, op.skillActive > 0 && Boolean(op.def.skill.skillRange));
-        const inRange = (gx, gy) => rangeTiles.some(([tc, tr]) => Math.floor(gx) === tc && Math.floor(gy) === tr);
+        const inRange = (gx, gy) => (op.skillActive > 0 && op.def.skill.globalRange) ? true : rangeTiles.some(([tc, tr]) => Math.floor(gx) === tc && Math.floor(gy) === tr);
         if (op.def.dmgType === 'BARD') {
           // 吟遊者 (濁心斯卡蒂)：不直接打怪，持續治療範圍內所有友軍並施加歌聲光環！
           const allies = state.operators.filter(a => !a.def.unhealable && rangeTiles.some(([tc, tr]) => tc === a.col && tr === a.row));
@@ -3147,7 +3348,9 @@
               const hits = op.def.multiHit || 1;
               const prevHp = target.hp;
               for (let hi = 0; hi < hits; hi++) {
-                dealDamageToEnemy(target, hi === 0 ? atk : Math.round(atk * (op.def.branch === '投擲手' ? 0.5 : 1.0)), op.def.dmgType);
+                const effDmgType = (op.skillActive > 0 && op.def.skill.trueDmg) ? 'TRUE' : op.def.dmgType;
+                dealDamageToEnemy(target, hi === 0 ? atk : Math.round(atk * (op.def.branch === '投擲手' ? 0.5 : 1.0)), effDmgType);
+                if (op.skillActive > 0 && op.def.skill.stunOnHit) target.stunTimer = Math.max(target.stunTimer, op.def.skill.stunOnHit);
               }
               if (op.def.splash) {
                 for (const spE of state.enemies) {
@@ -3217,8 +3420,20 @@
       if (st.rewards.lmd) { save.lmd += st.rewards.lmd; rwParts.push(`+${st.rewards.lmd}幣`); }
       if (st.rewards.exp) { save.expRecords += st.rewards.exp; rwParts.push(`+${st.rewards.exp}經驗`); }
       if (st.rewards.orundum) { save.orundum += st.rewards.orundum; rwParts.push(`+${st.rewards.orundum}玉`); }
-      if (stars === 3 && prevStars < 3 && st.rewards.firstOp) { save.originite += st.rewards.firstOp; rwParts.push(`◆源石+${st.rewards.firstOp}`); }
-      if (prevStars === 0 && st.rewards.firstOrundum) { save.orundum += st.rewards.firstOrundum; rwParts.push(`首通+${st.rewards.firstOrundum}玉`); }
+      save.firstOpClaimed = save.firstOpClaimed || {};
+      save.firstOrundumClaimed = save.firstOrundumClaimed || {};
+      if (stars === 3 && st.rewards.firstOp && !save.firstOpClaimed[st.id]) {
+        save.firstOpClaimed[st.id] = true;
+        save.originite += st.rewards.firstOp;
+        rwParts.push(`◆首通源石+${st.rewards.firstOp}`);
+      }
+      if (st.rewards.firstOrundum && !save.firstOrundumClaimed[st.id]) {
+        save.firstOrundumClaimed[st.id] = true;
+        save.orundum += st.rewards.firstOrundum;
+        rwParts.push(`首通+${st.rewards.firstOrundum}玉`);
+        if (st.rewards.firstCerts) { save.certs += st.rewards.firstCerts; rwParts.push(`黃票+${st.rewards.firstCerts}`); }
+      }
+      if (st.category === 'abyss' && st.floor) save.abyssBestFloor = Math.max(save.abyssBestFloor || 0, st.floor);
       persistSave(); sfx.play('win');
     } else sfx.play('leak');
 
