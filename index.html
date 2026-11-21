@@ -702,21 +702,38 @@
             <p id="arch-skill-desc" class="text-[11px] text-slate-300 leading-relaxed"></p>
           </div>
 
-          <div id="arch-upgrade-box" class="grid grid-cols-2 gap-2">
+          <div id="arch-trust-bar-wrap" class="bg-slate-900/90 border border-slate-800 px-2.5 py-1.5 space-y-1">
+            <div class="flex items-center justify-between text-[10px] font-mono-tech">
+              <span class="text-pink-300 font-bold">信賴度 TRUST（出戰自動提升）</span>
+              <span id="arch-trust-val" class="text-white font-bold">0% / 200%</span>
+            </div>
+            <div class="w-full h-1.5 bg-slate-800 overflow-hidden"><div id="arch-trust-fill" class="h-full bg-gradient-to-r from-pink-500 to-amber-400" style="width:0%"></div></div>
+            <div id="arch-pot-detail" class="text-[10px] text-slate-400">潛能加成：潛2費-1 · 潛3再部署-4s · 潛4攻+5% · 潛5天賦+4% · 潛6費-1</div>
+          </div>
+
+          <div id="arch-upgrade-box" class="grid grid-cols-2 gap-1.5">
             <button id="btn-up-level" class="p-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-45 border border-sky-500/50 text-left ak-chamfer-sm">
               <div class="text-xs font-black text-sky-300">升級 +5 Lv</div>
               <div id="cost-up-level" class="text-[10px] font-mono-tech text-slate-300"></div>
             </button>
+            <button id="btn-up-level-max" class="p-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-45 border border-cyan-400/60 text-left ak-chamfer-sm">
+              <div class="text-xs font-black text-cyan-300">一鍵拉滿當前等級</div>
+              <div id="cost-up-level-max" class="text-[10px] font-mono-tech text-slate-300"></div>
+            </button>
             <button id="btn-up-elite" class="p-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-45 border border-amber-500/50 text-left ak-chamfer-sm">
-              <div class="text-xs font-black text-amber-300">精英化晉升</div>
+              <div class="text-xs font-black text-amber-300">精英化晉升 (解鎖精二立繪)</div>
               <div id="cost-up-elite" class="text-[10px] font-mono-tech text-slate-300"></div>
             </button>
             <button id="btn-up-skill" class="p-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-45 border border-purple-500/50 text-left ak-chamfer-sm">
-              <div class="text-xs font-black text-purple-300">技能專精升級</div>
+              <div id="label-up-skill" class="text-xs font-black text-purple-300">技能升級 (Lv.1~7→專三)</div>
               <div id="cost-up-skill" class="text-[10px] font-mono-tech text-slate-300"></div>
             </button>
+            <button id="btn-up-module" class="p-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-45 border border-rose-500/50 text-left ak-chamfer-sm">
+              <div id="label-up-module" class="text-xs font-black text-rose-300">專屬模組 (Lv.0→3)</div>
+              <div id="cost-up-module" class="text-[10px] font-mono-tech text-slate-300"></div>
+            </button>
             <button id="btn-up-pot" class="p-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-45 border border-emerald-500/50 text-left ak-chamfer-sm">
-              <div class="text-xs font-black text-emerald-300">碎片升潛</div>
+              <div class="text-xs font-black text-emerald-300">碎片潛能突破</div>
               <div id="cost-up-pot" class="text-[10px] font-mono-tech text-slate-300"></div>
             </button>
           </div>
@@ -1674,7 +1691,8 @@
 
   function getOpArtUrl(op, tall = false) {
     const hasSkin = save.equippedSkins && save.equippedSkins[op.id];
-    if (hasSkin && op.charId) return tall ? op.skinPortrait : op.skinAvatar;
+    const isE2 = isOwned(op.id) && (save.owned[op.id]?.elite || 0) >= 2;
+    if ((hasSkin || isE2) && op.charId) return tall ? op.skinPortrait : op.skinAvatar;
     return tall ? op.tallPortrait : op.portrait;
   }
   function applyImgWithFallback(el, op, tall = false) {
@@ -2000,16 +2018,39 @@
 
   const todayStr = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`; };
   const isOwned = id => Boolean(save.owned[id]);
-  const getOwnedData = id => save.owned[id] || { level:1, elite:0, skillLv:1, pot:1, frags:0 };
-  const getMaxLv = (e, r) => e === 0 ? 30 : e === 1 ? (r >= 5 ? 60 : 50) : 80;
+  const getOwnedData = id => {
+    const raw = save.owned[id];
+    if (!raw) return { level:1, elite:0, skillLv:1, mastery:0, moduleLv:0, trust:0, pot:1, frags:0 };
+    return { level:1, elite:0, skillLv:1, mastery:0, moduleLv:0, trust:0, pot:1, frags:0, ...raw };
+  };
+  // Authentic Arknights max level per rarity & elite phase!
+  const getMaxLv = (e, r) => {
+    if (r >= 6) return e === 0 ? 50 : e === 1 ? 80 : 90;
+    if (r === 5) return e === 0 ? 50 : e === 1 ? 70 : 80;
+    if (r === 4) return e === 0 ? 45 : e === 1 ? 60 : 70;
+    return e === 0 ? 40 : 55;
+  };
   function getOpComputedStats(opDef) {
     const d = getOwnedData(opDef.id);
-    const scale = 1 + (d.level - 1) * 0.015 + d.elite * 0.22 + (d.pot - 1) * 0.06;
-    const costRed = d.pot >= 4 ? 2 : d.pot >= 2 ? 1 : 0;
+    const trustPct = Math.min(100, d.trust || 0) / 100; // 100% trust grants full bonus
+    const scale = 1 + (d.level - 1) * 0.012 + d.elite * 0.24 + (d.pot >= 4 ? 0.05 : 0) + (d.pot >= 5 ? 0.04 : 0) + (d.moduleLv || 0) * 0.055;
+    const costRed = (d.pot >= 6 ? 2 : d.pot >= 2 ? 1 : 0) + (d.moduleLv >= 3 ? 1 : 0);
+    const redeployRed = d.pot >= 3 ? 4 : 0;
+    const trustHp  = Math.round(220 * trustPct);
+    const trustAtk = Math.round(65 * trustPct);
+    const trustDef = Math.round(35 * trustPct);
+    const totalSkillRank = (d.skillLv || 1) + (d.mastery || 0); // 1..10 (Lv.7 + M3)
     return {
-      maxHp: Math.round(opDef.maxHp * scale), atk: Math.round(opDef.atk * scale), def: Math.round(opDef.def * scale),
-      cost: Math.max(5, opDef.cost - costRed), skillMult: 1 + (d.skillLv - 1) * 0.08,
-      spCost: Math.max(8, opDef.skill.spCost - Math.floor((d.skillLv - 1) / 2)), ...d
+      maxHp: Math.round(opDef.maxHp * scale) + trustHp,
+      atk:   Math.round(opDef.atk * scale) + trustAtk,
+      def:   Math.round(opDef.def * scale) + trustDef,
+      res:   (opDef.res || 0) + (d.moduleLv >= 2 ? 5 : 0),
+      cost:  Math.max(4, opDef.cost - costRed),
+      redeploy: Math.max(10, (opDef.redeploy || 70) - redeployRed),
+      skillMult: 1 + (d.skillLv - 1) * 0.07 + (d.mastery || 0) * 0.14,
+      spCost: Math.max(6, opDef.skill.spCost - Math.floor((d.skillLv - 1) / 2) - (d.mastery || 0) * 2),
+      totalSkillRank,
+      ...d
     };
   }
   function isStageUnlocked(st) {
@@ -2853,26 +2894,75 @@
     document.getElementById('arch-role').textContent = `${op.role} · ${op.branch || op.tag}`;
     document.getElementById('arch-elite-badge').textContent = `精英 ${cs.elite}`;
     document.getElementById('arch-name').textContent = op.name;
-    document.getElementById('arch-en').textContent = `Lv.${cs.level}/${maxLv} · 潛能 ${cs.pot}/6 · 碎片 ${cs.frags}`;
+    const mText = cs.mastery > 0 ? ` · 專精${['','一','二','三'][cs.mastery]}` : '';
+    const modText = cs.moduleLv > 0 ? ` · 模組Lv.${cs.moduleLv}` : '';
+    document.getElementById('arch-en').textContent = `Lv.${cs.level}/${maxLv} · 潛能 ${cs.pot}/6${modText} · 碎片 ${cs.frags}`;
     document.getElementById('arch-skill-name').textContent = op.skill.name;
-    document.getElementById('arch-skill-rank').textContent = `Lv.${cs.skillLv}/7 · SP ${cs.spCost}`;
+    document.getElementById('arch-skill-rank').textContent = `${cs.mastery > 0 ? `專精${['','一','二','三'][cs.mastery]} (M${cs.mastery})` : `Lv.${cs.skillLv}/7`} · SP ${cs.spCost}`;
     document.getElementById('arch-skill-desc').textContent = op.skill.desc;
-    document.getElementById('arch-stats').innerHTML = `<div><div class="text-[10px] text-slate-400">生命</div><div class="font-mono-tech font-bold text-white">${cs.maxHp}</div></div><div><div class="text-[10px] text-slate-400">攻擊</div><div class="font-mono-tech font-bold text-amber-300">${cs.atk}</div></div><div><div class="text-[10px] text-slate-400">防禦</div><div class="font-mono-tech font-bold text-sky-300">${cs.def}</div></div><div><div class="text-[10px] text-slate-400">費用/阻擋</div><div class="font-mono-tech font-bold text-emerald-300">${cs.cost} / ${op.placement==="RANGED"?"高台":"阻"+op.block}</div></div>`;
+    document.getElementById('arch-stats').innerHTML = `<div><div class="text-[10px] text-slate-400">生命</div><div class="font-mono-tech font-bold text-white">${cs.maxHp}</div></div><div><div class="text-[10px] text-slate-400">攻擊</div><div class="font-mono-tech font-bold text-amber-300">${cs.atk}</div></div><div><div class="text-[10px] text-slate-400">防禦/法抗</div><div class="font-mono-tech font-bold text-sky-300">${cs.def}/${cs.res}</div></div><div><div class="text-[10px] text-slate-400">費用/阻擋</div><div class="font-mono-tech font-bold text-emerald-300">${cs.cost} / ${op.placement==="RANGED"?"高台":"阻"+op.block}</div></div>`;
+    const trWrap = document.getElementById('arch-trust-bar-wrap'); if (trWrap) trWrap.classList.toggle('hidden', !owned);
+    const trVal = document.getElementById('arch-trust-val'), trFill = document.getElementById('arch-trust-fill');
+    if (trVal) trVal.textContent = `${cs.trust || 0}% / 200%`;
+    if (trFill) trFill.style.width = `${Math.min(100, (cs.trust || 0) / 2)}%`;
     document.getElementById('arch-upgrade-box').classList.toggle('hidden', !owned);
     document.getElementById('arch-locked-msg').classList.toggle('hidden', owned);
 
     if (owned) {
-      const lvLmd = 1000 + cs.level * 100, lvExp = 2;
-      const eliteCost = cs.elite === 0 ? 8000 : 18000, skillCost = 2000 + cs.skillLv * 1000;
+      const lvLmd = 800 + cs.level * 80, lvExp = 2;
+      const stepsToMax = Math.ceil(Math.max(0, maxLv - cs.level) / 5);
+      const maxLmd = stepsToMax * (800 + Math.round((cs.level + maxLv) / 2) * 80), maxExp = stepsToMax * 2;
+      const eliteCost = cs.elite === 0 ? 12000 : 30000;
       const bLv = document.getElementById('btn-up-level'); bLv.disabled = cs.level >= maxLv;
-      document.getElementById('cost-up-level').textContent = cs.level >= maxLv ? '已滿級' : `${lvLmd.toLocaleString()}幣 + ${lvExp}作戰記錄`;
+      document.getElementById('cost-up-level').textContent = cs.level >= maxLv ? '已滿級' : `${lvLmd.toLocaleString()}幣 + ${lvExp}記錄`;
+      const bLvMax = document.getElementById('btn-up-level-max');
+      if (bLvMax) { bLvMax.disabled = cs.level >= maxLv; document.getElementById('cost-up-level-max').textContent = cs.level >= maxLv ? '已達上限' : `${maxLmd.toLocaleString()}幣 + ${maxExp}記錄`; }
       const bEl = document.getElementById('btn-up-elite'), maxE = op.rarity >= 4 ? 2 : 1;
       bEl.disabled = cs.elite >= maxE || cs.level < maxLv;
       document.getElementById('cost-up-elite').textContent = cs.elite >= maxE ? '已滿精英化' : cs.level < maxLv ? `需先至 Lv.${maxLv}` : `${eliteCost.toLocaleString()}幣晉升精${cs.elite+1}`;
-      const bSk = document.getElementById('btn-up-skill'); bSk.disabled = cs.skillLv >= 7;
-      document.getElementById('cost-up-skill').textContent = cs.skillLv >= 7 ? '已滿級' : `${skillCost.toLocaleString()}幣升至 Lv.${cs.skillLv+1}`;
+
+      // Skill Lv.1~7 -> Mastery M1~M3 (Requires Elite 2 for Mastery!)
+      const bSk = document.getElementById('btn-up-skill');
+      const lSk = document.getElementById('label-up-skill');
+      const curM = cs.mastery || 0;
+      if (cs.skillLv < 7) {
+        const sc = 2000 + cs.skillLv * 1000;
+        bSk.disabled = false;
+        if (lSk) lSk.textContent = `技能升級 (Lv.${cs.skillLv}→${cs.skillLv+1})`;
+        document.getElementById('cost-up-skill').textContent = `${sc.toLocaleString()}龍門幣`;
+      } else if (op.rarity >= 4 && curM < 3) {
+        const mc = 15000 + curM * 12000;
+        bSk.disabled = cs.elite < 2;
+        if (lSk) lSk.textContent = `技能專精 (專精${['一','二','三'][curM]})`;
+        document.getElementById('cost-up-skill').textContent = cs.elite < 2 ? '需先晉升精英二解鎖' : `${mc.toLocaleString()}龍門幣`;
+      } else {
+        bSk.disabled = true;
+        if (lSk) lSk.textContent = op.rarity >= 4 ? '技能已專精三 (M3)' : '技能已滿級 (Lv.7)';
+        document.getElementById('cost-up-skill').textContent = '已達最高專精';
+      }
+
+      // Module Lv.0 -> 3 (Requires Elite 2 & Lv.40+ for 4*/5*/6*!)
+      const bMod = document.getElementById('btn-up-module');
+      const lMod = document.getElementById('label-up-module');
+      const curMod = cs.moduleLv || 0;
+      if (bMod) {
+        if (op.rarity < 4) {
+          bMod.disabled = true; if (lMod) lMod.textContent = '專屬模組 (4★+解鎖)';
+          document.getElementById('cost-up-module').textContent = '3★幹員無模組';
+        } else if (curMod >= 3) {
+          bMod.disabled = true; if (lMod) lMod.textContent = '專屬模組 MOD Lv.3';
+          document.getElementById('cost-up-module').textContent = '已滿級 (全屬性+16.5% / 費-1)';
+        } else {
+          const modCost = 18000 + curMod * 14000;
+          const reqMet = cs.elite >= 2 && cs.level >= 40;
+          bMod.disabled = !reqMet;
+          if (lMod) lMod.textContent = curMod === 0 ? '開啟專屬模組 (Lv.1)' : `升級專屬模組 (Lv.${curMod}→${curMod+1})`;
+          document.getElementById('cost-up-module').textContent = !reqMet ? '需精二 Lv.40 解鎖' : `${modCost.toLocaleString()}龍門幣`;
+        }
+      }
+
       const bPot = document.getElementById('btn-up-pot'); bPot.disabled = cs.pot >= 6 || cs.frags < 15;
-      document.getElementById('cost-up-pot').textContent = cs.pot >= 6 ? '已滿潛' : `需 15 碎片（現有 ${cs.frags}）`;
+      document.getElementById('cost-up-pot').textContent = cs.pot >= 6 ? '已滿潛能 (Pot 6)' : `需 15 碎片（現有 ${cs.frags}）`;
     }
 
     const opSkin = SKINS.find(sk => sk.opId === op.id && save.ownedSkins.includes(sk.id));
@@ -4008,7 +4098,7 @@
     if (save.sanity < st.sanityCost) { showGlobalToast(`理智不足（需 ${st.sanityCost}，可至採購中心以源石恢復）`); return; }
     save.sanity -= st.sanityCost;
     const parts = [];
-    save.dailyBattleDone = true; if (st.rewards.lmd) { save.lmd += st.rewards.lmd; parts.push(`+${st.rewards.lmd.toLocaleString()}龍門幣`); }
+    save.dailyBattleDone = true; save.squad.forEach(sid => { if (save.owned[sid]) save.owned[sid].trust = Math.min(200, (save.owned[sid].trust || 0) + 4); }); if (st.rewards.lmd) { save.lmd += st.rewards.lmd; parts.push(`+${st.rewards.lmd.toLocaleString()}龍門幣`); }
     if (st.rewards.exp) { save.expRecords += st.rewards.exp; parts.push(`+${st.rewards.exp}作戰記錄`); }
     if (st.rewards.orundum) { save.orundum += st.rewards.orundum; parts.push(`+${st.rewards.orundum}合成玉`); }
     sfx.play('victory'); persistSave(); renderLobby(); renderStageMap();
@@ -4026,27 +4116,58 @@
 
   document.getElementById('btn-up-level').addEventListener('click', () => {
     const op = OP_MAP[state.archiveOpId]; if (!isOwned(op.id)) return;
-    const d = save.owned[op.id], maxLv = getMaxLv(d.elite, op.rarity), lmdCost = 1000 + d.level * 100, expCost = 2;
+    const d = save.owned[op.id], maxLv = getMaxLv(d.elite, op.rarity), lmdCost = 800 + d.level * 80, expCost = 2;
     if (d.level >= maxLv) return;
     if (save.lmd < lmdCost) { showGlobalToast('龍門幣不足！請去「資源籌備 CE-5」刷取龍門幣。'); return; }
     if (save.expRecords < expCost) { showGlobalToast('作戰記錄不足！請去「資源籌備 LS-5」或基建領取。'); return; }
     save.lmd -= lmdCost; save.expRecords -= expCost; d.level = Math.min(maxLv, d.level + 5); save.dailyUpgradeDone = true;
     persistSave(); sfx.play('skill'); renderOperatorArchive();
   });
+  document.getElementById('btn-up-level-max').addEventListener('click', () => {
+    const op = OP_MAP[state.archiveOpId]; if (!isOwned(op.id)) return;
+    const d = save.owned[op.id], maxLv = getMaxLv(d.elite, op.rarity);
+    if (d.level >= maxLv) return;
+    let upgraded = 0;
+    while (d.level < maxLv) {
+      const lmdCost = 800 + d.level * 80, expCost = 2;
+      if (save.lmd < lmdCost || save.expRecords < expCost) break;
+      save.lmd -= lmdCost; save.expRecords -= expCost; d.level = Math.min(maxLv, d.level + 5); upgraded++;
+    }
+    if (!upgraded) { showGlobalToast('龍門幣或作戰記錄不足！可先掃蕩 CE-5 / LS-5。'); return; }
+    save.dailyUpgradeDone = true; persistSave(); sfx.play('ssr'); renderOperatorArchive();
+    showGlobalToast(`✦ ${op.name} 已升至 Lv.${d.level}！`);
+  });
   document.getElementById('btn-up-elite').addEventListener('click', () => {
     const op = OP_MAP[state.archiveOpId]; if (!isOwned(op.id)) return;
-    const d = save.owned[op.id], maxE = op.rarity >= 4 ? 2 : 1, maxLv = getMaxLv(d.elite, op.rarity), cost = d.elite === 0 ? 8000 : 18000;
+    const d = save.owned[op.id], maxE = op.rarity >= 4 ? 2 : 1, maxLv = getMaxLv(d.elite, op.rarity), cost = d.elite === 0 ? 12000 : 30000;
     if (d.elite >= maxE || d.level < maxLv) return;
     if (save.lmd < cost) { showGlobalToast(`龍門幣不足（需 ${cost.toLocaleString()}，可刷 CE-5）`); return; }
-    save.lmd -= cost; d.elite += 1; d.level = 1;
-    persistSave(); sfx.play('ssr'); renderOperatorArchive(); showGlobalToast(`✦ ${op.name} 精英 ${d.elite} 晉升成功！`);
+    save.lmd -= cost; d.elite += 1; d.level = 1; save.dailyUpgradeDone = true;
+    persistSave(); sfx.play('ssr'); renderOperatorArchive();
+    showGlobalToast(d.elite === 2 ? `✦ ${op.name} 精英二晉升成功！已解鎖精二立繪、技能專精與專屬模組！` : `✦ ${op.name} 精英一晉升成功！`);
   });
   document.getElementById('btn-up-skill').addEventListener('click', () => {
     const op = OP_MAP[state.archiveOpId]; if (!isOwned(op.id)) return;
-    const d = save.owned[op.id], cost = 2000 + d.skillLv * 1000;
-    if (d.skillLv >= 7) return;
-    if (save.lmd < cost) { showGlobalToast('龍門幣不足！'); return; }
-    save.lmd -= cost; d.skillLv += 1; persistSave(); sfx.play('skill'); renderOperatorArchive();
+    const d = save.owned[op.id]; d.mastery = d.mastery || 0;
+    if (d.skillLv < 7) {
+      const cost = 2000 + d.skillLv * 1000;
+      if (save.lmd < cost) { showGlobalToast('龍門幣不足！'); return; }
+      save.lmd -= cost; d.skillLv += 1; save.dailyUpgradeDone = true; persistSave(); sfx.play('skill'); renderOperatorArchive();
+    } else if (op.rarity >= 4 && d.elite >= 2 && d.mastery < 3) {
+      const cost = 15000 + d.mastery * 12000;
+      if (save.lmd < cost) { showGlobalToast(`專精所需龍門幣不足（需 ${cost.toLocaleString()}）`); return; }
+      save.lmd -= cost; d.mastery += 1; save.dailyUpgradeDone = true; persistSave(); sfx.play('ssr'); renderOperatorArchive();
+      showGlobalToast(`✦ ${op.name} 技能專精${['','一','二','三'][d.mastery]} (M${d.mastery}) 完成！`);
+    }
+  });
+  document.getElementById('btn-up-module').addEventListener('click', () => {
+    const op = OP_MAP[state.archiveOpId]; if (!isOwned(op.id)) return;
+    const d = save.owned[op.id]; d.moduleLv = d.moduleLv || 0;
+    if (op.rarity < 4 || d.elite < 2 || d.level < 40 || d.moduleLv >= 3) return;
+    const cost = 18000 + d.moduleLv * 14000;
+    if (save.lmd < cost) { showGlobalToast(`模組升級龍門幣不足（需 ${cost.toLocaleString()}）`); return; }
+    save.lmd -= cost; d.moduleLv += 1; save.dailyUpgradeDone = true; persistSave(); sfx.play('ssr'); renderOperatorArchive();
+    showGlobalToast(`✦ ${op.name} 專屬模組已升級至 MOD Lv.${d.moduleLv}！`);
   });
   document.getElementById('btn-up-pot').addEventListener('click', () => {
     const op = OP_MAP[state.archiveOpId]; if (!isOwned(op.id)) return;
